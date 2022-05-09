@@ -1,0 +1,15 @@
+[submodule "3rd/serio"]
+	path = 3rd/serio
+	url = https://github.com/ShahriarSS/serio
+[submodule "3rd/pybind11"]
+	path = 3rd/pybind11
+	url = https://github.com/pybind/pybind11.git
+[submodule "3rd/blasw"]
+	path = 3rd/blasw
+	url = git@github.com:Mathific/Blasw.git
+[submodule "3rd/dnnl"]
+	path = 3rd/dnnl
+	url = https://github.com/oneapi-src/oneDNN.git
+[submodule "3rd/stb"]
+	path = 3rd/stb
+	url = https://github.com/nothings/stb.git
