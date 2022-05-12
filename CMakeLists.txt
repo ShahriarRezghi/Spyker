@@ -8,7 +8,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 # Options
 option(ENABLE_NATIVE "Build for native CPU architecture" ON)
 option(ENABLE_PYTHON "Build with Python module support" ON)
-option(ENABLE_DNNL "Build the library with DNNL Support" OFF)
+option(ENABLE_DNNL "Build the library with DNNL Support" ON)
 option(ENABLE_EXAMPLES "Build examples for the library" ON)
 option(ENABLE_CUDA "Build the library with CUDA support" ON)
 option(ENABLE_CUDNN "Build the library with CUDNN Support" ON)
