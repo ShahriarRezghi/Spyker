@@ -5,10 +5,10 @@ version: 2
 sphinx:
    configuration: docs/conf.py
 
-# Explicitly set the version of Python and its requirements
+# Optionally declare the Python requirements required to build your docs
 python:
-  install:
-    - breathe
+   install:
+   - requirements: docs/req.txt
 
 # Set the version of Python and other tools you might need
 build:
