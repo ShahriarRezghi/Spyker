@@ -155,9 +155,9 @@ class ZCA:
     def transform(self):
         return self.impl.transform
 
-    @trans.setter
-    def trans(self, trans):
-        self.impl.trans = transform
+    transform.setter
+    def transform(self, transform):
+        self.impl.transform = transform
 
     def fit(self, input, epsilon, transform=False):
         """

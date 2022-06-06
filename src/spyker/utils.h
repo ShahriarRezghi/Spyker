@@ -310,7 +310,7 @@ public:
     {
         SpykerCompare(TypeName<T>(), ==, _type, "Interface::Tensor",
                       "Requested pointer type is not the same as tensor's.");
-        return (T *)_data.get();
+        return (T *)data();
     }
 
     /// Return a copy of this tensor with data type converted to 8-bit signed integer.

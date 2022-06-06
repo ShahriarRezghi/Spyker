@@ -45,6 +45,9 @@ class CMakeBuild(build_ext):
 
         if 'ENABLE_NINJA' in env and (env['ENABLE_NINJA'] == 1 or env['ENABLE_NINJA'].upper() == 'ON' or env['ENABLE_NINJA'].upper() == 'TRUE'):
             cmake_args.append('-GNinja')
+        if 'CMAKE_ARGS' in env:
+            cmake_args.extend(env['CMAKE_ARGS'].split())
+
         if 'BLA_STATIC' in env:
             cmake_args.append('-DBLA_STATIC=' + env['BLA_STATIC'])
         if 'BLA_VENDOR' in env:
