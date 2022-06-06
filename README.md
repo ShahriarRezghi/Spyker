@@ -10,7 +10,10 @@
 Spyker is a high-performance library written from scratch that simulates spiking neural networks. It has both C++ and Python interfaces and can be easily integrated with popular tools like Numpy and PyTorch.
 
 # Installation
-Prebuilt packages will be available soon. For now, you can follow the instructions on how to build the library form source [here](BUILD.md).
+Prebuilt packages will be available soon. For now, you can follow the instructions on how to build the library form source [here](https://spyker.readthedocs.io/en/latest/files/install.html).
+
+# Documentation
+You can see the documentation for the C++ and Python interfaces [here](https://spyker.readthedocs.io/en/latest/index.html).
 
 # Tutorials
 You can take a look at the tutorials listed below to learn how to use the library.
