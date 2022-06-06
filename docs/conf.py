@@ -15,7 +15,7 @@ import sys
 import subprocess
 
 sys.path.append(os.path.abspath('.') + '/breathe/')
-sys.path.append(os.path.abspath('.') + '/../src/python/')
+sys.path.append(os.path.abspath('.') + './src/python/')
 
 # -- Project information -----------------------------------------------------
 
@@ -61,7 +61,7 @@ html_static_path = ['_static']
 # -- Breathe -----------------------------------------------------------------
 
 breathe_default_project = 'Spyker'
-breathe_projects = {'Spyker': os.path.abspath('.') + '/build/xml/'}
+breathe_projects = {'Spyker': os.path.abspath('.') + '/src/build/xml/'}
 
 if os.environ.get('READTHEDOCS', None) == 'True':
-    subprocess.call('doxygen doxy.cfg', shell=True)
+    subprocess.call('doxygen docs/doxy.cfg', shell=True)
