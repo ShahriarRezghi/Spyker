@@ -1106,9 +1106,3 @@ def convwta(input, radius, count, threshold=.0):
 
 def stdp(conv, input, winners, output):
     impl.stdp(conv.impl, input, winners, output)
-
-
-def read_mnist(data_path, label_path):
-    data = impl.helper.mnist_data(data_path)
-    label = impl.helper.mnist_label(label_path)
-    return data, label

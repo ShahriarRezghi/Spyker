@@ -6,28 +6,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 # Options
-option(ENABLE_NATIVE "Build for native CPU architecture" ON)
+set(OPTIM_FLAGS "-march=native" CACHE STRING "Optimization flags to build with")
+set(CUDA_ARCH_LIST "" CACHE STRING "List of CUDA Architectures to generate code for")
 option(ENABLE_PYTHON "Build with Python module support" ON)
-option(ENABLE_DNNL "Build the library with DNNL Support" OFF)
-option(ENABLE_EXAMPLES "Build examples for the library" ON)
 option(ENABLE_CUDA "Build the library with CUDA support" ON)
 option(ENABLE_CUDNN "Build the library with CUDNN Support" ON)
-option(CUDA_ARCH_LIST "List of CUDA Architectures to generate code for" "")
+option(ENABLE_DNNL "Build the library with DNNL Support" ON)
 option(ENABLE_BLAS "Build the library with BLAS support" ON)
+option(ENABLE_EXAMPLES "Build examples for the library" ON)
 option(ENABLE_TESTS "Build tests for the library" ON)
 
-set(NATIVE_ENABLED OFF)
 set(PYTHON_ENABLED OFF)
 set(CUDA_ENABLED OFF)
 set(CUDNN_ENABLED OFF)
 set(BLAS_ENABLED OFF)
 set(DNNL_ENABLED OFF)
-
-# Native Architecture
-if(ENABLE_NATIVE)
-    set(NATIVE_ARCH "-march=native")
-    set(NATIVE_ENABLED ON)
-endif()
 
 # Python Interface
 if(ENABLE_PYTHON)
@@ -35,6 +28,34 @@ if(ENABLE_PYTHON)
 else()
     set(LIBRARY_TYPE "SHARED")
 endif()
+
+# BLAS Library
+if(ENABLE_BLAS)
+    add_subdirectory(3rd/blasw)
+    set(BLAS_ENABLED ON)
+    set(LIBRARY_BLAS BLASW::BLASW)
+    set(DEFINE_BLAS SPYKER_USE_BLAS)
+endif()
+
+# DNNL Library
+if(ENABLE_DNNL)
+    set(DNNL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(DNNL_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(DNNL_LIBRARY_TYPE "STATIC" CACHE STRING "" FORCE)
+    set(DNNL_ENABLE_WORKLOAD INFERENCE CACHE STRING "" FORCE)
+    set(DNNL_ARCH_OPT_FLAGS "${OPTIM_FLAGS}" CACHE STRING "" FORCE)
+    set(DNNL_ENABLE_PRIMITIVE CONVOLUTION MATMUL CACHE LIST "" FORCE)
+
+    add_subdirectory(3rd/dnnl)
+    set(DNNL_ENABLED ON)
+    add_library(dnnl_interface INTERFACE IMPORTED)
+    target_link_libraries(dnnl_interface INTERFACE dnnl)
+    set(LIBRARY_DNNL dnnl_interface)
+    set(DEFINE_DNNL SPYKER_USE_DNNL)
+endif()
+
+string(REPLACE " " ";" OPTIM_FLAGS "${OPTIM_FLAGS}")
+string(REPLACE " " ";" CUDA_ARCH_LIST "${CUDA_ARCH_LIST}")
 
 if(ENABLE_CUDA)
     include(CheckLanguage)
@@ -98,31 +119,6 @@ if(CUDA_ENABLED AND ENABLE_CUDNN)
     endif()
 endif()
 
-# BLAS Library
-if(ENABLE_BLAS)
-    add_subdirectory(3rd/blasw)
-    set(BLAS_ENABLED ON)
-    set(LIBRARY_BLAS BLASW::BLASW)
-    set(DEFINE_BLAS SPYKER_USE_BLAS)
-endif()
-
-# DNNL Library
-if(ENABLE_DNNL)
-    set(DNNL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(DNNL_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-    set(DNNL_LIBRARY_TYPE "STATIC" CACHE STRING "" FORCE)
-    set(DNNL_ENABLE_WORKLOAD INFERENCE CACHE STRING "" FORCE)
-    set(DNNL_ARCH_OPT_FLAGS "${NATIVE_ARCH}" CACHE STRING "" FORCE)
-    set(DNNL_ENABLE_PRIMITIVE CONVOLUTION MATMUL CACHE LIST "" FORCE)
-
-    add_subdirectory(3rd/dnnl)
-    set(DNNL_ENABLED ON)
-    add_library(dnnl_interface INTERFACE IMPORTED)
-    target_link_libraries(dnnl_interface INTERFACE dnnl)
-    set(LIBRARY_DNNL dnnl_interface)
-    set(DEFINE_DNNL SPYKER_USE_DNNL)
-endif()
-
 # Project Files
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/spyker/config.h.in"
@@ -161,7 +157,7 @@ target_link_libraries(spyker PRIVATE
 target_compile_definitions(spyker PUBLIC
     ${DEFINE_BLAS} ${DEFINE_CUDA} ${DEFINE_DNNL} ${DEFINE_CUDNN})
 target_compile_options(spyker PUBLIC
-    $<$<COMPILE_LANGUAGE:CXX>: "${NATIVE_ARCH}" -fno-math-errno>)
+    $<$<COMPILE_LANGUAGE:CXX>: ${OPTIM_FLAGS} -fno-math-errno -ftree-vectorize>)
 set_target_properties(spyker PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 
@@ -186,16 +182,18 @@ endif()
 
 # Examples
 if(ENABLE_EXAMPLES)
-
+    add_executable(play "examples/play.cpp")
+    target_link_libraries(play PUBLIC spyker)
 endif()
 
 # Summary
 message(STATUS "")
 message(STATUS "Summary:")
-message(STATUS "Native Architectrure: ---- ${NATIVE_ENABLED}")
-message(STATUS "Python Interface: -------- ${PYTHON_ENABLED}")
-message(STATUS "CUDA: -------------------- ${CUDA_ENABLED}")
-message(STATUS "CUDNN: ------------------- ${CUDNN_ENABLED}")
-message(STATUS "BLAS: -------------------- ${BLAS_ENABLED}")
-message(STATUS "DNNL: -------------------- ${DNNL_ENABLED}")
+message(STATUS "Optimization Flags: ------------ ${OPTIM_FLAGS}")
+message(STATUS "CUDA Archutecutre List: -------- ${CUDA_ARCH_LIST}")
+message(STATUS "Python Interface: -------------- ${PYTHON_ENABLED}")
+message(STATUS "CUDA: -------------------------- ${CUDA_ENABLED}")
+message(STATUS "CUDNN: ------------------------- ${CUDNN_ENABLED}")
+message(STATUS "DNNL: -------------------------- ${DNNL_ENABLED}")
+message(STATUS "BLAS: -------------------------- ${BLAS_ENABLED}")
 message(STATUS "")

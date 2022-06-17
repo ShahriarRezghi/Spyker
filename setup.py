@@ -10,6 +10,12 @@ from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 
 
+def IsTrue(arg):
+    if arg == 1: return True
+    if arg.upper() == 'ON': return True
+    if arg.upper() == 'TRUE': return True
+
+
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=''):
         Extension.__init__(self, name, sources=[])
@@ -43,10 +49,12 @@ class CMakeBuild(build_ext):
                       '-DPYTHON_EXECUTABLE=' + sys.executable]
         env = os.environ.copy()
 
-        if 'ENABLE_NINJA' in env and (env['ENABLE_NINJA'] == 1 or env['ENABLE_NINJA'].upper() == 'ON' or env['ENABLE_NINJA'].upper() == 'TRUE'):
+        if 'ENABLE_NINJA' in env and IsTrue(env['ENABLE_NINJA']):
             cmake_args.append('-GNinja')
         if 'CMAKE_ARGS' in env:
             cmake_args.extend(env['CMAKE_ARGS'].split())
+        if 'OPTIM_FLAGS' in env:
+            cmake_args.append('-DOPTIM_FLAGS=' + env['OPTIM_FLAGS'])
 
         if 'BLA_STATIC' in env:
             cmake_args.append('-DBLA_STATIC=' + env['BLA_STATIC'])
@@ -65,19 +73,17 @@ class CMakeBuild(build_ext):
             cmake_args.append('-DENABLE_CUDA=' + env['ENABLE_CUDA'])
         if 'ENABLE_CUDNN' in env:
             cmake_args.append('-DENABLE_CUDNN=' + env['ENABLE_CUDNN'])
-        if 'ENABLE_NATIVE' in env:
-            cmake_args.append('-DENABLE_NATIVE=' + env['ENABLE_NATIVE'])
 
-        cfg = 'Debug' if self.debug else 'Release'
-        build_args = ['--config', cfg]
+        build_type = 'Release'
+        if 'BUILD_TYPE' in env:build_type = env['BUILD_TYPE']
+        cmake_args.append('-DCMAKE_BUILD_TYPE=' + build_type)
 
+        build_args = []
         if platform.system() == "Windows":
-            cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(), extdir)]
-            if sys.maxsize > 2 ** 32:
-                cmake_args += ['-A', 'x64']
+            cmake_args += [f'-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{build_type.upper()}={extdir}']
+            if sys.maxsize > 2 ** 32: cmake_args += ['-A', 'x64']
             build_args += ['--', '/m']
         else:
-            cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
             build_args += ['--', f'-j{multiprocessing.cpu_count()}']
 
         if not os.path.exists(self.build_temp):

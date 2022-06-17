@@ -306,3 +306,9 @@ def expand4(shape):
     if isinstance(shape, (list, tuple)) and len(shape) == 2: return [shape[0], shape[1], shape[0], shape[1]]
     if isinstance(shape, (list, tuple)) and len(shape) == 4: return tuple(shape)
     raise ValueError("Given shape couldn't be expanded to 4D.")
+
+
+def read_mnist(data_path, label_path):
+    data = impl.helper.mnist_data(data_path)
+    label = impl.helper.mnist_label(label_path)
+    return data, label

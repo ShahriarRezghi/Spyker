@@ -151,10 +151,22 @@ T maxval(Size size, PTR(T, input))
     for (Size i = 0; i < size; ++i) max = std::max(max, input[i]);
     return max;
 }
+template <typename T>
+T minval(Size size, PTR(T, input))
+{
+    T min = input[0];
+    for (Size i = 0; i < size; ++i) min = std::min(min, input[i]);
+    return min;
+}
 template <typename V>
 typename V::Type maxval(V vec)
 {
     return maxval(vec.size(), vec.data);
+}
+template <typename V>
+typename V::Type minval(V vec)
+{
+    return minval(vec.size(), vec.data);
 }
 }  // namespace CPU
 }  // namespace Core
