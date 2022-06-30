@@ -464,12 +464,19 @@ class SpykerExport FC
 
     friend void stdp(FC &fc, Tensor input, const Winners &winners, Tensor output);
 
+    friend Tensor signfc(FC &fc, Tensor input);
+
+    friend Tensor signfc(FC &fc, Tensor input, Tensor output);
+
 public:
     /// Kernel of the module.
     Tensor kernel;
 
     /// List of STDP configurations.
     std::vector<STDPConfig> config;
+
+    /// Backpropagation configutation.
+    BPConfig bpconfig;
 
     /// Module can't be used when initialized this way.
     FC();
@@ -498,6 +505,12 @@ public:
     /// @param[in] input input dense tensor to be processed.
     /// @return fully connected output dense tensor.
     Tensor operator()(Tensor input);
+
+    /// Backpropagate and return the gradient.
+    Tensor backward(Tensor input, Tensor output, Tensor grad);
+
+    /// Backpropagate and return the gradient.
+    Tensor backward(Tensor input, Tensor output, Tensor grad, Tensor next);
 
     /// Apply the STDP on the fully connected.
     ///
@@ -778,6 +791,22 @@ SpykerExport void stdp(Conv &conv, Tensor input, const Winners &winners, Tensor 
 /// @param winners winner neurons that are selected for updating.
 /// @param[in] output convolution output dense tensor.
 SpykerExport void stdp(FC &fc, Tensor input, const Winners &winners, Tensor output);
+
+SpykerExport Tensor backward(Tensor input, Tensor target, Size time, Scalar gamma);
+
+SpykerExport Tensor backward(Tensor input, Tensor output, Tensor target, Size time, Scalar gamma);
+
+SpykerExport Tensor labelize(Tensor input, Scalar threshold);
+
+SpykerExport Tensor labelize(Tensor input, Tensor output, Scalar threshold);
+
+SpykerExport Tensor signfc(Tensor input, Tensor kernel);
+
+SpykerExport Tensor signfc(Tensor input, Tensor kernel, Tensor output);
+
+SpykerExport Tensor signfc(FC &fc, Tensor input);
+
+SpykerExport Tensor signfc(FC &fc, Tensor input, Tensor output);
 
 namespace Rate
 {

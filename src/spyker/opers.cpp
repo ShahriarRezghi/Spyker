@@ -128,6 +128,13 @@ Tensor least3(Tensor input)
     SpykerCompare(shape.size(), >, 2, "Interface", "Input dimensions couldn't be viewed as at least 3D.");
     return input.reshape(shape);
 }
+Tensor to2(Tensor input)
+{
+    auto shape = input.shape();
+    if (shape.size() == 1) shape.insert(shape.begin(), 1);
+    SpykerCompare(shape.size(), ==, 2, "Interface", "Input dimensions couldn't be viewed as 2D.");
+    return input.reshape(shape);
+}
 Tensor to3(Tensor input)
 {
     auto shape = input.shape();
@@ -831,6 +838,22 @@ Tensor FC::operator()(Tensor input, Tensor output)
     return output;
 }
 
+Tensor FC::backward(Tensor input, Tensor output, Tensor grad)
+{
+    Tensor next(_device, grad.type(), input.shape());
+    return backward(input, output, grad, next);
+}
+
+Tensor FC::backward(Tensor input, Tensor output, Tensor grad, Tensor next)
+{
+    input = to2(input), output = to2(output), grad = to2(grad), next = to2(next);
+    SpykerCompare(_init, ==, true, "Interface::FC", "Layer is used before initializing.");
+    bool compat = Core::compatible({input.device(), output.device(), grad.device(), _device});
+    SpykerAssert(compat, "Interface::Backward", "Tensor devices are not compatible.");
+    Core::fcbackward(kernel, input, output, grad, next, bpconfig, _device);
+    return next;
+}
+
 Tensor FC::operator()(Tensor input)
 {
     SpykerCompare(_init, ==, true, "Interface::FC", "Layer is used before initializing.");
@@ -846,6 +869,86 @@ void FC::stdp(Tensor input, const Winners &winners, Tensor output)
     SpykerCompare(_init, ==, true, "Interface::STDP", "Layer is used before initializing.");
     SpykerCompare(input.device(), ==, _device, "Interface::STDP", "Input device is not the same as layer's.");
     rank_fcstdp(input, kernel, output, config, winners);
+}
+
+Tensor backward(Tensor input, Tensor target, Size time, Scalar gamma)
+{
+    Tensor output(input.device(), input.type(), input.shape());
+    return backward(input, output, target, time, gamma);
+}
+
+Tensor backward(Tensor input, Tensor output, Tensor target, Size time, Scalar gamma)
+{
+    SpykerCompare(target.type(), ==, Type::I64, "Interface::Backward", "Target type must have I64 type.");
+    SpykerCompare(time, >, 0, "Interface::Backward", "Time steps must be higher than zero.");
+    SpykerCompare(input.shape(), ==, output.shape(), "Interface::Backward",
+                  "Output must have the same shape as input.");
+    SpykerCompare(input.shape(0), ==, target.shape(0), "Interface::Backward",
+                  "Input and target shapes are not compatible.");
+
+    bool compat = Core::compatible({input.device(), output.device(), target.device()});
+    SpykerAssert(compat, "Interface::Backward", "Tensor devices are not compatible.");
+    Core::backward(input, output, target, time, gamma, input.device());
+    return output;
+}
+
+Tensor labelize(Tensor input, Scalar threshold)
+{
+    Tensor output(input.device(), Type::I64, {input.shape(0)});
+    return labelize(input, output, threshold);
+}
+
+Tensor labelize(Tensor input, Tensor output, Scalar threshold)
+{
+    SpykerCompare(output.type(), ==, Type::I64, "Interface::Labelize", "Output tensor must have I64 type.");
+    bool compat = Core::compatible({input.device(), output.device()});
+    SpykerAssert(compat, "Interface::Labelize", "Tensor devices are not compatible.");
+    Core::labelize(input, output, threshold, input.device());
+    return output;
+}
+
+Tensor signfc(Tensor input, Tensor kernel)
+{
+    input = to3(input);
+    Tensor output(input.device(), Type::F32, fcShape(input.shape(), kernel.shape()));
+    return signfc(input, kernel, output);
+}
+
+Tensor signfc(Tensor input, Tensor kernel, Tensor output)
+{
+    input = to3(input), output = to3(output);
+
+    bool compat = Core::compatible({input.device(), kernel.device(), output.device()});
+    SpykerAssert(compat, "Interface::FC", "Tensor devices are not compatible.");
+    SpykerCompare(kernel.type(), ==, Type::F32, "Interface::FC", "Kernel data type must be F32.");
+    SpykerCompare(output.type(), ==, Type::F32, "Interface::FC", "Output data type must be F32.");
+    SpykerCompare(output.shape(), ==, fcShape(input.shape(), kernel.shape()), "Interface::FC",
+                  "Tensor shapes are not compatible.");
+
+    Core::signfc(input, kernel, output, input.device());
+    return output;
+}
+
+SpykerExport Tensor signfc(FC &fc, Tensor input)
+{
+    input = to3(input);
+    Tensor output(input.device(), Type::F32, fcShape(input.shape(), fc.kernel.shape()));
+    return signfc(input, fc.kernel, output);
+}
+
+SpykerExport Tensor signfc(FC &fc, Tensor input, Tensor output)
+{
+    input = to3(input), output = to3(output);
+
+    bool compat = Core::compatible({input.device(), fc.kernel.device(), output.device()});
+    SpykerAssert(compat, "Interface::FC", "Tensor devices are not compatible.");
+    SpykerCompare(fc.kernel.type(), ==, Type::F32, "Interface::FC", "Kernel data type must be F32.");
+    SpykerCompare(output.type(), ==, Type::F32, "Interface::FC", "Output data type must be F32.");
+    SpykerCompare(output.shape(), ==, fcShape(input.shape(), fc.kernel.shape()), "Interface::FC",
+                  "Tensor shapes are not compatible.");
+
+    Core::signfc(input, fc.kernel, output, input.device());
+    return output;
 }
 
 namespace Rate

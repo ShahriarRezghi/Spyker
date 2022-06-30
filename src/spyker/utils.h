@@ -514,4 +514,27 @@ struct SpykerExport STDPConfig
     {
     }
 };
+
+/// Backpropagation configuration parameters container.
+struct SpykerExport BPConfig
+{
+    /// Scaling factor
+    F32 sfactor;
+
+    /// Learning rate
+    F32 lrate;
+
+    /// Learning rate of scaling factor
+    F32 lrf;
+
+    /// Weight regularization term
+    F32 lambda;
+
+    inline BPConfig() : sfactor(1), lrate(1), lrf(1), lambda(0) {}
+
+    inline BPConfig(F32 sfactor, F32 lrate, F32 lrf, F32 lambda)
+        : sfactor(sfactor), lrate(lrate), lrf(lrf), lambda(lambda)
+    {
+    }
+};
 }  // namespace Spyker

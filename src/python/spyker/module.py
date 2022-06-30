@@ -119,6 +119,17 @@ class STDPConfig:
         return impl.STDPConfig(self.pos, self.neg, self.stabilize, self.low, self.high)
 
 
+class BPConfig:
+    def __init__(self, sfactor, lrate, lrf, lambda_):
+        self.sfactor = sfactor
+        self.lrate = lrate
+        self.lrf = lrf
+        self.lambda_ = lambda_
+
+    def get(self):
+        return impl.BPConfig(self.sfactor, self.lrate, self.lrf, self.lambda_)
+
+
 class ZCA:
     """
     ZCA Whitening Module
@@ -495,6 +506,10 @@ class FC:
     def kernel(self):
         return self.impl.kernel
 
+    @property
+    def bpconfig(self):
+        return self.impl.bpconfig
+
     @kernel.setter
     def kernel(self, kernel):
         self.impl.kernel = kernel
@@ -505,6 +520,10 @@ class FC:
             self.impl.config = [config.get()]
         else: 
             self.impl.config = [x.get() for x in config]
+
+    @bpconfig.setter
+    def bpconfig(self, config):
+        self.impl.bpconfig = config.get()
 
     def __call__(self, input):
         """
@@ -542,6 +561,12 @@ class FC:
         """
 
         self.impl.stdp(wrap(input), winners, wrap(output))
+
+    def backward(self, input, output, grad):
+        input_, grad_ = to2(wrap(input)), to2(wrap(grad))
+        next = create(grad, grad_.dtype, input_.shape)
+        self.impl.backward(input_, wrap(output), grad_, wrap(next))
+        return next
 
 
 class Conv:
@@ -668,7 +693,7 @@ def fcfwd(fc, input):
     """
 
     input_ = to3(wrap(input))
-    shape = impl.shape.fc(input_.shape, self.kernel.shape)
+    shape = impl.shape.fc(input_.shape, fc.kernel.shape)
     output = create(input, impl.f32, shape)
     impl.fc(fc.impl, input_, wrap(output))
     return output
@@ -692,7 +717,7 @@ def convfwd(conv, input):
     """
 
     input_ = to5(wrap(input))
-    shape = impl.shape.conv(input_.shape, self.kernel.shape, self.stride, self.pad)
+    shape = impl.shape.conv(input_.shape, conv.kernel.shape, conv.stride, conv.pad)
     output = create(input, impl.f32, shape)
     impl.conv(conv.impl, input_, wrap(output))
     return output
@@ -994,27 +1019,6 @@ def scatter(input, time, dtype=impl.u8):
     return output
 
 
-def fc(input, kernel):
-    input_ = to3(wrap(input))
-    kernel_ = wrap(kernel)
-    shape = impl.shape.fc(input_.shape, kernel_.shape)
-    output = create(input, impl.f32, shape)
-    impl.fc(input_, kernel_, wrap(output))
-    return output
-
-
-def conv(input, kernel, stride=1, pad=0):
-    kernel_ = wrap(kernel)
-    stride = expand2(stride)
-    pad = expand4(pad)
-
-    input_ = to5(wrap(input))
-    shape = impl.shape.conv(input_.shape, kernel_.shape, stride, pad)
-    output = create(input, impl.f32, shape)
-    impl.conv(input_, kernel_, wrap(output), stride, pad)
-    return output
-
-
 def pool(input, kernel, stride=None, pad=0):
     """
     Apply 2D max pooling
@@ -1106,3 +1110,34 @@ def convwta(input, radius, count, threshold=.0):
 
 def stdp(conv, input, winners, output):
     impl.stdp(conv.impl, input, winners, output)
+
+
+def backward(input, target, time, gamma):
+    input_ = wrap(input)
+    output = create(input, input_.dtype, input_.shape)
+    impl.backward(input_, wrap(output), wrap(target), time, gamma)
+    return output
+
+
+def labelize(input, threshold):
+    input_ = wrap(input)
+    output = create(input, impl.i64, [input_.shape[0]])
+    impl.labelize(input_, wrap(output), threshold)
+    return output
+
+
+def signfc(input, kernel):
+    input_ = to3(wrap(input))
+    kernel_ = wrap(kernel)
+    shape = impl.shape.fc(input_.shape, kernel_.shape)
+    output = create(input, impl.f32, shape)
+    impl.signfc(input_, kernel_, wrap(output))
+    return output
+
+
+def signfcfwd(fc, input):
+    input_ = to3(wrap(input))
+    shape = impl.shape.fc(input_.shape, fc.kernel.shape)
+    output = create(input, impl.f32, shape)
+    impl.signfc(fc.impl, input_, wrap(output))
+    return output

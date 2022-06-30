@@ -225,6 +225,10 @@ Declare(void, fc, Dyn3 input I Dyn2 kernel I Dyn3 output)  //
 {
     Choose(fc, input, kernel, output);
 }
+Declare(void, signfc, Dyn3 input I Dyn2 kernel I Dyn3 output)  //
+{
+    Choose(signfc, input, kernel, output);
+}
 Declare(void, pad, Dyn3 input I Dyn3 output I Len4 pad I Scalar value)  //
 {
     Choose(pad, input, output, pad, value);
@@ -299,6 +303,18 @@ Declare(void, rate_gather, Dyn3 input I Dyn2 output I Scalar threshold)
 Declare(void, rate_pool, Dyn5 input I Dyn4 rates I Dyn5 output I Len2 kernel I Len2 stride I Len4 pad)
 {
     Choose(rate_pool, input, rates, output, kernel, stride, pad);
+}
+Declare(void, backward, Dyn2 input I Dyn2 output I Dyn1 target I Size time I Scalar gamma)
+{
+    Choose(backward, input, output, target, time, gamma);
+}
+Declare(void, labelize, Dyn3 input I Dyn1 output I Scalar threshold)  //
+{
+    Choose(labelize, input, output, threshold);
+}
+Declare(void, fcbackward, Dyn2 kernel I Dyn2 input I Dyn2 output I Dyn2 grad I Dyn2 next I BPConfig &config)
+{
+    Choose(fcbackward, kernel, input, output, grad, next, config);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

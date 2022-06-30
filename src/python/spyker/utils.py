@@ -270,6 +270,13 @@ def least3(input):
     return input.reshape(shape)
 
 
+def to2(input):
+    shape = list(input.shape)
+    if len(shape) == 1: shape.insert(0, 1)
+    if len(shape) != 2: raise ValueError("Input dimensions couldn't be viewed as 2D.")
+    return input.reshape(shape)
+
+
 def to3(input):
     shape = list(input.shape)
     if len(shape) == 2: shape.insert(0, 1)

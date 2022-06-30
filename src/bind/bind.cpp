@@ -205,6 +205,13 @@ PYBIND11_MODULE(spyker_plugin, m)
         .def_readwrite("low", &STDPConfig::low)
         .def_readwrite("high", &STDPConfig::high);
 
+    py::class_<BPConfig>(m, "BPConfig")
+        .def(py::init<F32, F32, F32, F32>())
+        .def_readwrite("sfactor", &BPConfig::sfactor)
+        .def_readwrite("lrate", &BPConfig::lrate)
+        .def_readwrite("lrf", &BPConfig::lrf)
+        .def_readwrite("lambda_", &BPConfig::lambda);
+
     py::class_<ZCA>(m, "ZCA")
         .def(py::init())
         .def(py::init<Tensor, F64, bool>())
@@ -234,9 +241,12 @@ PYBIND11_MODULE(spyker_plugin, m)
         .def(py::init<Device, Size, Size, F32, F32>())
         .def_readwrite("kernel", &FC::kernel)
         .def_readwrite("config", &FC::config)
+        .def_readwrite("bpconfig", &FC::bpconfig)
         .def("__call__", [](FC &layer, Tensor input, Tensor output) { return layer(input, output); })
-        .def("stdp", [](FC &layer, Tensor input, const Winners &winners, Tensor output) {
-            layer.stdp(input, winners, output);
+        .def("stdp",
+             [](FC &layer, Tensor input, const Winners &winners, Tensor output) { layer.stdp(input, winners, output); })
+        .def("backward", [](FC &layer, Tensor input, Tensor output, Tensor grad, Tensor next) {
+            layer.backward(input, output, grad, next);
         });
 
     py::class_<Conv>(m, "Conv")
@@ -251,6 +261,8 @@ PYBIND11_MODULE(spyker_plugin, m)
     m.def("canny", [](Tensor input, Tensor output, F64 low, F64 high) { Spyker::canny(input, output, low, high); })
         .def("fc", [](Tensor input, Tensor kernel, Tensor output) { Spyker::fc(input, kernel, output); })
         .def("fc", [](FC &fc, Tensor input, Tensor output) { Spyker::fc(fc, input, output); })
+        .def("signfc", [](Tensor input, Tensor kernel, Tensor output) { Spyker::signfc(input, kernel, output); })
+        .def("signfc", [](FC &fc, Tensor input, Tensor output) { Spyker::signfc(fc, input, output); })
         .def("conv", [](Tensor input, Tensor kernel, Tensor output, Shape stride,
                         Shape pad) { Spyker::conv(input, kernel, output, stride, pad); })
         .def("conv", [](Conv &conv, Tensor input, Tensor output) { Spyker::conv(conv, input, output); })
@@ -272,9 +284,12 @@ PYBIND11_MODULE(spyker_plugin, m)
                            F64 threshold) { return Spyker::convwta(input, radius, count, threshold); })
         .def("stdp", [](Conv &conv, Tensor input, const Winners &winners,
                         Tensor output) { Spyker::stdp(conv, input, winners, output); })
-        .def("stdp", [](FC &fc, Tensor input, const Winners &winners, Tensor output) {
-            Spyker::stdp(fc, input, winners, output);
-        });
+        .def("stdp", [](FC &fc, Tensor input, const Winners &winners,
+                        Tensor output) { Spyker::stdp(fc, input, winners, output); })
+        .def("backward", [](Tensor input, Tensor output, Tensor target, Size time,
+                            F64 gamma) { return Spyker::backward(input, output, target, time, gamma); })
+        .def("labelize",
+             [](Tensor input, Tensor output, F64 threshold) { return Spyker::labelize(input, output, threshold); });
 
     using namespace Spyker::Rate;
     m.def_submodule("rate")

@@ -182,8 +182,6 @@ endif()
 
 # Examples
 if(ENABLE_EXAMPLES)
-    add_executable(play "examples/play.cpp")
-    target_link_libraries(play PUBLIC spyker)
 endif()
 
 # Summary

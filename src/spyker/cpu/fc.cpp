@@ -91,11 +91,32 @@ void fc(Vec3<T> input, Vec2<F32> kernel, Vec3<F32> output)
     fc(temp, kernel, output);
     deinit(temp);
 }
+
+template <typename T>
+void sign(Size size, PTR(T, input), PTR(T, output))
+{
+#pragma omp parallel for
+    for (Size i = 0; i < size; ++i)  //
+        output[i] = T(input[i] > 0 ? 1 : (input[i] < 0 ? -1 : 0));
+}
+
+template <typename T>
+void signfc(Vec3<T> input, Vec2<F32> kernel, Vec3<F32> output)
+{
+    auto temp = init<F32>(kernel.y, kernel.x);
+    sign(kernel.size(), kernel.data, temp.data);
+    fc(input, temp, output);
+    deinit(temp);
+}
 }  // namespace CPU
 
 void cpu_fc(Dyn3 input, Dyn2 kernel, Dyn3 output)  //
 {
     IfType(T, input.type, CPU::fc<T>(input, kernel, output));
+}
+void cpu_signfc(Dyn3 input, Dyn2 kernel, Dyn3 output)  //
+{
+    IfType(T, input.type, CPU::signfc<T>(input, kernel, output));
 }
 void cpu_fc_clear() { CPU::fc_clear(); }
 }  // namespace Core
