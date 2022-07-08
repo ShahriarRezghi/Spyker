@@ -385,18 +385,14 @@ Tensor conv(Tensor input, Tensor kernel, Tensor output, Expand2 stride, Expand4 
     return output;
 }
 
-Tensor conv(Conv &conv, Tensor input) { return conv(input); }
-
-Tensor conv(Conv &conv, Tensor input, Tensor output) { return conv(input, output); }
-
-Tensor fc(Tensor input, Tensor kernel)
+Tensor fc(Tensor input, Tensor kernel, bool sign)
 {
     input = to3(input);
     Tensor output(input.device(), Type::F32, fcShape(input.shape(), kernel.shape()));
-    return fc(input, kernel, output);
+    return fc(input, kernel, output, sign);
 }
 
-Tensor fc(Tensor input, Tensor kernel, Tensor output)
+Tensor fc(Tensor input, Tensor kernel, Tensor output, bool sign)
 {
     input = to3(input), output = to3(output);
 
@@ -407,13 +403,10 @@ Tensor fc(Tensor input, Tensor kernel, Tensor output)
     SpykerCompare(output.shape(), ==, fcShape(input.shape(), kernel.shape()), "Interface::FC",
                   "Tensor shapes are not compatible.");
 
-    Core::fc(input, kernel, output, input.device());
+    if (!sign) Core::fc(input, kernel, output, input.device());
+    if (sign) Core::signfc(input, kernel, output, input.device());
     return output;
 }
-
-Tensor fc(FC &fc, Tensor input) { return fc(input); }
-
-Tensor fc(FC &fc, Tensor input, Tensor output) { return fc(input, output); }
 
 Tensor pad(Tensor input, Expand4 pad, Scalar value)
 {
@@ -456,15 +449,15 @@ Tensor quantize(Tensor input, Scalar lower, Scalar middle, Scalar upper, bool in
     return input;
 }
 
-Tensor code(Tensor input, Size time, bool sort, Type type)
+Tensor code(Tensor input, Size time, bool sort, Type type, Code code)
 {
     input = least2(input);
     SpykerCompare(time, >, 0, "Interface::RankCode", "Input time can't be less than 1.");
     Tensor output(input.device(), type, codeShape(input.shape(), time));
-    return code(input, output, time, sort);
+    return Spyker::code(input, output, time, sort, code);
 }
 
-Tensor code(Tensor input, Tensor output, Size time, bool sort)
+Tensor code(Tensor input, Tensor output, Size time, bool sort, Code code)
 {
     input = least2(input), output = least3(output);
 
@@ -476,7 +469,8 @@ Tensor code(Tensor input, Tensor output, Size time, bool sort)
 
     input = input.reshape({input.shape(0), -1});
     auto out = output.reshape({output.shape(0), output.shape(1), -1});
-    Core::rank_code(input, out, sort, input.device());
+    if (code == Code::Rank) Core::rank_code(input, out, sort, input.device());
+    if (code == Code::Rate) Core::rate_code(input, out, sort, input.device());
     return output;
 }
 
@@ -489,32 +483,46 @@ Tensor infinite(Tensor input, Scalar value, bool inplace)
     return input;
 }
 
-Tensor fire(Tensor input, Scalar threshold, Type type)
+Tensor fire(Tensor input, Scalar threshold, Type type, Code code)
 {
     Tensor output(input.device(), type, input.shape());
-    return fire(input, output, threshold);
+    return fire(input, output, threshold, code);
 }
 
-Tensor fire(Tensor input, Tensor output, Scalar threshold)
+Tensor fire(Tensor input, Tensor output, Scalar threshold, Code code)
 {
     bool compat = Core::compatible({input.device(), output.device()});
     SpykerAssert(compat, "Interface::Fire", "Tensor devices are not compatible.");
     SpykerCompare(output.shape(), ==, input.shape(), "Interface::Fire", "Tensor shapes are not compatible.");
 
-    input = input.reshape({-1});
-    auto out = output.reshape({-1});
-    Core::rank_fire(input, out, threshold, input.device());
+    if (code == Code::Rank)
+    {
+        input = input.reshape({-1});
+        auto out = output.reshape({-1});
+        Core::rank_fire(input, out, threshold, input.device());
+    }
+    if (code == Code::Rate)
+    {
+        if (input.dims() == 2)
+        {
+            input = input.reshape({1, input.shape(1), input.shape(2)});
+            output = output.reshape({1, output.shape(1), output.shape(2)});
+        }
+        input = input.reshape({input.shape(0), input.shape(1), -1});
+        auto out = output.reshape({output.shape(0), output.shape(1), -1});
+        Core::rate_fire(input, out, threshold, input.device());
+    }
     return output;
 }
 
-Tensor gather(Tensor input, Scalar threshold, Type type)
+Tensor gather(Tensor input, Scalar threshold, Type type, Code code)
 {
     input = least3(input);
     Tensor output(input.device(), type, gatherShape(input.shape()));
-    return gather(input, output, threshold);
+    return gather(input, output, threshold, code);
 }
 
-Tensor gather(Tensor input, Tensor output, Scalar threshold)
+Tensor gather(Tensor input, Tensor output, Scalar threshold, Code code)
 {
     input = least3(input), output = least2(output);
 
@@ -525,7 +533,8 @@ Tensor gather(Tensor input, Tensor output, Scalar threshold)
 
     input = input.reshape({input.shape(0), input.shape(1), -1});
     auto out = output.reshape({output.shape(0), -1});
-    Core::rank_gather(input, out, threshold, input.device());
+    if (code == Code::Rank) Core::rank_gather(input, out, threshold, input.device());
+    if (code == Code::Rate) Core::rate_gather(input, out, threshold, input.device());
     return output;
 }
 
@@ -552,16 +561,16 @@ Tensor scatter(Tensor input, Tensor output)
     return output;
 }
 
-Tensor pool(Tensor input, Expand2 kernel, Expand2 stride, Expand4 pad)
+Tensor pool(Tensor input, Expand2 kernel, Expand2 stride, Expand4 pad, Tensor rates)
 {
     input = to5(input);
     if (stride.get() == Shape{0, 0}) stride = kernel;
     check("Kernel", kernel, {1, 1}), check("Stride", stride, {1, 1}), check("Pad", pad, {0, 0, 0, 0});
     Tensor output(input.device(), input.type(), poolShape(input.shape(), kernel, stride, pad));
-    return pool(input, output, kernel, stride, pad);
+    return pool(input, output, kernel, stride, pad, rates);
 }
 
-Tensor pool(Tensor input, Tensor output, Expand2 kernel, Expand2 stride, Expand4 pad)
+Tensor pool(Tensor input, Tensor output, Expand2 kernel, Expand2 stride, Expand4 pad, Tensor rates)
 {
     input = to5(input), output = to5(output);
     if (stride.get() == Shape{0, 0}) stride = kernel;
@@ -573,9 +582,21 @@ Tensor pool(Tensor input, Tensor output, Expand2 kernel, Expand2 stride, Expand4
     SpykerCompare(output.shape(), ==, poolShape(input.shape(), kernel, stride, pad), "Interface::Pool",
                   "Tensor shapes are not compatible.");
 
-    input = input.reshape({-1, input.shape(2), input.shape(3), input.shape(4)});
-    auto out = output.reshape({-1, output.shape(2), output.shape(3), output.shape(4)});
-    Core::rank_pool(input, out, kernel.get(), stride.get(), pad.get(), input.device());
+    if (!rates)
+    {
+        input = input.reshape({-1, input.shape(2), input.shape(3), input.shape(4)});
+        auto out = output.reshape({-1, output.shape(2), output.shape(3), output.shape(4)});
+        Core::rank_pool(input, out, kernel.get(), stride.get(), pad.get(), input.device());
+    }
+    if (rates)
+    {
+        SpykerCompare(input.type(), ==, rates.type(), "Interface::Pool",
+                      "Input and rates must have the same data type.");
+        SpykerCompare(rates.shape(), ==, gatherShape(input.shape()), "Interface::Pool",
+                      "Tensor shapes are not compatible.");
+        Core::rate_pool(input, rates, output, kernel.get(), stride.get(), pad.get(), input.device());
+    }
+
     return output;
 }
 
@@ -602,13 +623,6 @@ Winners convwta(Tensor input, Expand2 radius, Size count, Scalar threshold)
     check("Radius", radius, {0, 0});
     SpykerCompare(count, >, 0, "Interface::ConvWTA", "Winners count can't be less than 1.");
     return Core::rank_convwta(input, radius.get(), count, threshold, input.device());
-}
-
-void stdp(Conv &conv, Tensor input, const Winners &winners, Tensor output) { conv.stdp(input, winners, output); }
-
-void stdp(FC &fc, Tensor input, const Winners &winners, Tensor output)  //
-{
-    fc.stdp(input, winners, output);
 }
 
 void rank_fcstdp(Tensor input, Tensor kernel, Tensor output, std::vector<STDPConfig> &config, const Winners &winners)
@@ -749,8 +763,6 @@ Tensor LoG::operator()(Tensor input)
 
 ZCA::ZCA() {}
 
-ZCA::ZCA(Tensor input, Scalar epsilon, bool transform) { fit(input, epsilon, transform); }
-
 ZCA &ZCA::fit(Tensor input, Scalar epsilon, bool transform)
 {
     SpykerCompare(input.dims(), >=, 2, "Interface::ZCA", "Input dimensions must be at least 2D.");
@@ -809,13 +821,29 @@ Tensor Conv::operator()(Tensor input)
     return conv(input, kernel, _stride.get(), _pad.get());
 }
 
+SparseTensor Conv::operator()(SparseTensor input, Scalar threshold)
+{
+    SpykerCompare(_init, ==, true, "Interface::Conv", "Layer is used before initializing.");
+    SpykerCompare(_device, ==, Kind::CPU, "Interface::Conv", "Input device is not the same as layer's.");
+    return Sparse::conv(input, kernel, threshold, _stride, _pad);
+}
+
 void Conv::stdp(Tensor input, const Winners &winners, Tensor output)
 {
     SpykerCompare(_init, ==, true, "Interface::STDP", "Layer is used before initializing.");
     SpykerCompare(input.device(), ==, _device, "Interface::STDP", "Input device is not the same as layer's.");
-    SpykerCompare(config.size(), >, 0, "Interface::STDP", "At least one STDP Config must be given.");
+    SpykerCompare(stdpconfig.size(), >, 0, "Interface::STDP", "At least one STDP Config must be given.");
     SpykerCompare(winners.size(), >, 0, "Interface::STDP", "Winners can't be empty.");
-    rank_convstdp(input, kernel, output, config, winners, _stride.get(), _pad.get());
+    rank_convstdp(input, kernel, output, stdpconfig, winners, _stride.get(), _pad.get());
+}
+
+void Conv::stdp(SparseTensor input, const Winners &winners)
+{
+    SpykerCompare(stdpconfig.size(), >, 0, "Interface::STDP", "At least one STDP Config must be given.");
+    SpykerCompare(winners.size(), >, 0, "Interface::STDP", "Winners can't be empty.");
+    SpykerCompare(_init, ==, true, "Interface::STDP", "Layer is used before initializing.");
+    SpykerCompare(_device, ==, Kind::CPU, "Interface::Conv", "Input device is not the same as layer's.");
+    Core::sparse_stdp(*(Sparse5 *)input.data(), kernel, stdpconfig, winners, _pad.get());
 }
 
 FC::FC(Size input, Size output, F32 mean, F32 std) : FC(Kind::CPU, input, output, mean, std) {}
@@ -830,12 +858,19 @@ FC::FC(Device device, Size input, Size output, F32 mean, F32 std) : _init(true),
     kernel = kernel.to(_device);
 }
 
-Tensor FC::operator()(Tensor input, Tensor output)
+Tensor FC::operator()(Tensor input, Tensor output, bool sign)
 {
     SpykerCompare(_init, ==, true, "Interface::FC", "Layer is used before initializing.");
     SpykerCompare(input.device(), ==, _device, "Interface::FC", "Input device is not the same as layer's.");
-    fc(input, kernel, output);
+    fc(input, kernel, output, sign);
     return output;
+}
+
+Tensor FC::operator()(Tensor input, bool sign)
+{
+    SpykerCompare(_init, ==, true, "Interface::FC", "Layer is used before initializing.");
+    SpykerCompare(input.device(), ==, _device, "Interface::FC", "Input device is not the same as layer's.");
+    return fc(input, kernel, sign);
 }
 
 Tensor FC::backward(Tensor input, Tensor output, Tensor grad)
@@ -854,21 +889,14 @@ Tensor FC::backward(Tensor input, Tensor output, Tensor grad, Tensor next)
     return next;
 }
 
-Tensor FC::operator()(Tensor input)
-{
-    SpykerCompare(_init, ==, true, "Interface::FC", "Layer is used before initializing.");
-    SpykerCompare(input.device(), ==, _device, "Interface::FC", "Input device is not the same as layer's.");
-    return fc(input, kernel);
-}
-
 void FC::stdp(Tensor input, const Winners &winners, Tensor output)
 {
     input = to3(input), output = to3(output);
-    SpykerCompare(config.size(), >, 0, "Interface::STDP", "At least one STDP Config must be given.");
+    SpykerCompare(stdpconfig.size(), >, 0, "Interface::STDP", "At least one STDP Config must be given.");
     SpykerCompare(winners.size(), >, 0, "Interface::STDP", "Winners can't be empty.");
     SpykerCompare(_init, ==, true, "Interface::STDP", "Layer is used before initializing.");
     SpykerCompare(input.device(), ==, _device, "Interface::STDP", "Input device is not the same as layer's.");
-    rank_fcstdp(input, kernel, output, config, winners);
+    rank_fcstdp(input, kernel, output, stdpconfig, winners);
 }
 
 Tensor backward(Tensor input, Tensor target, Size time, Scalar gamma)
@@ -907,161 +935,11 @@ Tensor labelize(Tensor input, Tensor output, Scalar threshold)
     return output;
 }
 
-Tensor signfc(Tensor input, Tensor kernel)
-{
-    input = to3(input);
-    Tensor output(input.device(), Type::F32, fcShape(input.shape(), kernel.shape()));
-    return signfc(input, kernel, output);
-}
-
-Tensor signfc(Tensor input, Tensor kernel, Tensor output)
-{
-    input = to3(input), output = to3(output);
-
-    bool compat = Core::compatible({input.device(), kernel.device(), output.device()});
-    SpykerAssert(compat, "Interface::FC", "Tensor devices are not compatible.");
-    SpykerCompare(kernel.type(), ==, Type::F32, "Interface::FC", "Kernel data type must be F32.");
-    SpykerCompare(output.type(), ==, Type::F32, "Interface::FC", "Output data type must be F32.");
-    SpykerCompare(output.shape(), ==, fcShape(input.shape(), kernel.shape()), "Interface::FC",
-                  "Tensor shapes are not compatible.");
-
-    Core::signfc(input, kernel, output, input.device());
-    return output;
-}
-
-SpykerExport Tensor signfc(FC &fc, Tensor input)
-{
-    input = to3(input);
-    Tensor output(input.device(), Type::F32, fcShape(input.shape(), fc.kernel.shape()));
-    return signfc(input, fc.kernel, output);
-}
-
-SpykerExport Tensor signfc(FC &fc, Tensor input, Tensor output)
-{
-    input = to3(input), output = to3(output);
-
-    bool compat = Core::compatible({input.device(), fc.kernel.device(), output.device()});
-    SpykerAssert(compat, "Interface::FC", "Tensor devices are not compatible.");
-    SpykerCompare(fc.kernel.type(), ==, Type::F32, "Interface::FC", "Kernel data type must be F32.");
-    SpykerCompare(output.type(), ==, Type::F32, "Interface::FC", "Output data type must be F32.");
-    SpykerCompare(output.shape(), ==, fcShape(input.shape(), fc.kernel.shape()), "Interface::FC",
-                  "Tensor shapes are not compatible.");
-
-    Core::signfc(input, fc.kernel, output, input.device());
-    return output;
-}
-
-namespace Rate
-{
-Tensor code(Tensor input, Size time, bool sort, Type type)
-{
-    input = least2(input);
-    SpykerCompare(time, >, 0, "Interface::RankCode", "Input time can't be less than 1.");
-    Tensor output(input.device(), type, codeShape(input.shape(), time));
-    return Rate::code(input, output, time, sort);
-}
-
-Tensor code(Tensor input, Tensor output, Size time, bool sort)
-{
-    input = least2(input), output = least3(output);
-
-    bool compat = Core::compatible({input.device(), output.device()});
-    SpykerAssert(compat, "Interface::RankCode", "Tensor devices are not compatible.");
-    SpykerCompare(time, >, 0, "Interface::RankCode", "Input time can't be less than 1.");
-    SpykerCompare(output.shape(), ==, codeShape(input.shape(), time), "Interface::RankCode",
-                  "Tensor shapes are not compatible.");
-
-    input = input.reshape({input.shape(0), -1});
-    auto out = output.reshape({output.shape(0), output.shape(1), -1});
-    Core::rate_code(input, out, sort, input.device());
-    return output;
-}
-
-Tensor fire(Tensor input, Scalar threshold, Type type)
-{
-    Tensor output(input.device(), type, input.shape());
-    return Rate::fire(input, output, threshold);
-}
-
-Tensor fire(Tensor input, Tensor output, Scalar threshold)
-{
-    input = least3(input), output = least3(output);
-
-    bool compat = Core::compatible({input.device(), output.device()});
-    SpykerAssert(compat, "Interface::Fire", "Tensor devices are not compatible.");
-    SpykerCompare(output.shape(), ==, input.shape(), "Interface::Fire", "Tensor shapes are not compatible.");
-
-    input = input.reshape({input.shape(0), input.shape(1), -1});
-    auto out = output.reshape({output.shape(0), output.shape(1), -1});
-    Core::rate_fire(input, out, threshold, input.device());
-    return output;
-}
-
-Tensor gather(Tensor input, Scalar threshold, Type type)
-{
-    input = least3(input);
-    Tensor output(input.device(), type, gatherShape(input.shape()));
-    return Rate::gather(input, output, threshold);
-}
-
-Tensor gather(Tensor input, Tensor output, Scalar threshold)
-{
-    input = least3(input), output = least2(output);
-
-    bool compat = Core::compatible({input.device(), output.device()});
-    SpykerAssert(compat, "Interface::Gather", "Tensor devices are not compatible.");
-    SpykerCompare(output.shape(), ==, gatherShape(input.shape()), "Interface::Gather",
-                  "Tensor shapes are not compatible.");
-
-    input = input.reshape({input.shape(0), input.shape(1), -1});
-    auto out = output.reshape({output.shape(0), -1});
-
-    Core::rate_gather(input, out, threshold, input.device());
-    return output;
-}
-
-Tensor pool(Tensor input, Tensor rates, Expand2 kernel, Expand2 stride, Expand4 pad)
-{
-    input = to5(input), rates = to4(rates);
-    if (stride.get() == Shape{0, 0}) stride = kernel;
-    check("Kernel", kernel, {1, 1}), check("Stride", stride, {1, 1}), check("Pad", pad, {0, 0, 0, 0});
-    Tensor output(input.device(), input.type(), poolShape(input.shape(), kernel, stride, pad));
-    return Rate::pool(input, rates, output, kernel, stride, pad);
-}
-
-Tensor pool(Tensor input, Tensor rates, Tensor output, Expand2 kernel, Expand2 stride, Expand4 pad)
-{
-    input = to5(input), rates = to4(rates), output = to5(output);
-    if (stride.get() == Shape{0, 0}) stride = kernel;
-    check("Kernel", kernel, {1, 1}), check("Stride", stride, {1, 1}), check("Pad", pad, {0, 0, 0, 0});
-
-    bool compat = Core::compatible({input.device(), rates.device(), output.device()});
-    SpykerAssert(compat, "Interface::Pool", "Tensor devices are not compatible.");
-    SpykerCompare(input.type(), ==, output.type(), "Interface::Pool", "Input and output must have the same data type.");
-    SpykerCompare(input.shape(0), ==, rates.shape(0), "Interface::pool", "Rates and output shape don't match.");
-    SpykerCompare(input.shape(2), ==, rates.shape(1), "Interface::pool", "Rates and output shape don't match.");
-    SpykerCompare(input.shape(3), ==, rates.shape(2), "Interface::pool", "Rates and output shape don't match.");
-    SpykerCompare(input.shape(4), ==, rates.shape(3), "Interface::pool", "Rates and output shape don't match.");
-    SpykerCompare(output.shape(), ==, poolShape(input.shape(), kernel, stride, pad), "Interface::Pool",
-                  "Tensor shapes are not compatible.");
-
-    Core::rate_pool(input, rates, output, kernel.get(), stride.get(), pad.get(), input.device());
-    return output;
-}
-}  // namespace Rate
-
 #define GET(tensor) *(Sparse5 *)tensor.data()
 
 namespace Sparse
 {
-SparseTensor conv(Conv &conv, SparseTensor input, F64 threshold)
-{
-    SpykerCompare(conv._init, ==, true, "Interface::Conv", "Layer is used before initializing.");
-    SpykerCompare(conv._device, ==, Kind::CPU, "Interface::Conv", "Input device is not the same as layer's.");
-    return Sparse::conv(input, conv.kernel, threshold, conv._stride, conv._pad);
-}
-
-SparseTensor conv(SparseTensor input, Tensor kernel, F64 threshold, Expand2 stride, Expand4 pad)
+SparseTensor conv(SparseTensor input, Tensor kernel, Scalar threshold, Expand2 stride, Expand4 pad)
 {
     check("Stride", stride, {1, 1}), check("Pad", pad, {0, 0, 0, 0});
     SparseTensor output(convShape(input.shape(), kernel.shape(), {1, 1}, pad));
@@ -1120,15 +998,6 @@ Winners convwta(SparseTensor input, Expand2 radius, Size count)
     check("Radius", radius, {0, 0});
     SpykerCompare(count, >, 0, "Interface::ConvWTA", "Winners count can't be less than 1.");
     return Core::sparse_convwta(GET(input), radius.get(), count);
-}
-
-void stdp(Conv &conv, SparseTensor input, const Winners &winners)
-{
-    SpykerCompare(conv.config.size(), >, 0, "Interface::STDP", "At least one STDP Config must be given.");
-    SpykerCompare(winners.size(), >, 0, "Interface::STDP", "Winners can't be empty.");
-    SpykerCompare(conv._init, ==, true, "Interface::STDP", "Layer is used before initializing.");
-    SpykerCompare(conv._device, ==, Kind::CPU, "Interface::Conv", "Input device is not the same as layer's.");
-    Core::sparse_stdp(GET(input), conv.kernel, conv.config, winners, conv._pad.get());
 }
 }  // namespace Sparse
 }  // namespace Spyker

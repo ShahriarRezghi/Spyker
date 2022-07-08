@@ -2,7 +2,7 @@ from spyker.utils import *
 import spyker.spyker_plugin as impl
 
 
-class DoGFilter:
+class DoGFilter(impl.DoGFilter):
     """
     Parameter holder for DoG filter
 
@@ -24,14 +24,10 @@ class DoGFilter:
             Standard deviation of the second Gaussian filter
         """
 
-        self.std1 = std1
-        self.std2 = std2
-
-    def get(self):
-        return impl.DoGFilter(self.std1, self.std2)
+        super().__init__(std1, std2)
 
 
-class GaborFilter:
+class GaborFilter(impl.GaborFilter):
     """
     Parameter holder for Gabor filter
 
@@ -49,7 +45,7 @@ class GaborFilter:
         Phase offset, spacial shift of the strips
     """
 
-    def __init__(self, sigma, theta, gamma, lambda_, psi):
+    def __init__(self, sigma, theta, gamma, lamda, psi):
         """
         Parameters
         ----------
@@ -65,17 +61,10 @@ class GaborFilter:
             Phase offset
         """
         
-        self.sigma = sigma
-        self.theta = theta
-        self.gamma = gamma
-        self.lambda_ = lambda_
-        self.psi = psi
-
-    def get(self):
-        return impl.GaborFilter(self.sigma, self.theta, self.gamma, self.lambda_, self.psi)
+        super().__init__(sigma, theta, gamma, lamda, psi)
 
 
-class STDPConfig:
+class STDPConfig(impl.STDPConfig):
     """
     Parameter holder for STDP configuration
 
@@ -109,28 +98,15 @@ class STDPConfig:
             Upper bound of the weights (default 1.0)
         """
 
-        self.pos = pos
-        self.neg = neg
-        self.stabilize = stabilize
-        self.low = low
-        self.high = high
-
-    def get(self):
-        return impl.STDPConfig(self.pos, self.neg, self.stabilize, self.low, self.high)
+        super().__init__(pos, neg, stabilize, low, high)
 
 
-class BPConfig:
-    def __init__(self, sfactor, lrate, lrf, lambda_):
-        self.sfactor = sfactor
-        self.lrate = lrate
-        self.lrf = lrf
-        self.lambda_ = lambda_
-
-    def get(self):
-        return impl.BPConfig(self.sfactor, self.lrate, self.lrf, self.lambda_)
+class BPConfig(impl.BPConfig):
+    def __init__(self, sfactor, lrate, lrf, lamda):
+        super().__init__(sfactor, lrate, lrf, lamda)
 
 
-class ZCA:
+class ZCA(impl.ZCA):
     """
     ZCA Whitening Module
 
@@ -152,23 +128,7 @@ class ZCA:
     """
 
     def __init__(self):
-        self.impl = impl.ZCA()
-
-    @property
-    def mean(self):
-        return self.impl.mean
-
-    @mean.setter
-    def mean(self, mean):
-        self.impl.mean = mean
-
-    @property
-    def transform(self):
-        return self.impl.transform
-
-    transform.setter
-    def transform(self, transform):
-        self.impl.transform = transform
+        super().__init__()
 
     def fit(self, input, epsilon, transform=False):
         """
@@ -189,10 +149,10 @@ class ZCA:
             this class
         """
 
-        self.impl.fit(wrap(input), epsilon, transform)
+        self._fit(wrap(input), epsilon, transform)
         return self
 
-    def __call__(self, *X, inplace=True):
+    def __call__(self, *input, inplace=True):
         """
         Transform the input data
 
@@ -209,12 +169,9 @@ class ZCA:
             Transformed data
         """
 
-        output = []
-        for input in X:
-            input = input if inplace else copy(input)
-            self.impl(wrap(input))
-            output.append(input)
-        return tuple(output) if len(output) > 1 else output[0]
+        if not inplace: input = [copy(x) for x in input]
+        [self._forward(x) for x in input]
+        return tuple(input) if len(input) > 1 else input[0]
 
     @staticmethod
     def split(input):
@@ -235,7 +192,7 @@ class ZCA:
         input_ = least2(wrap(input))
         shape = impl.shape.zca_split(input_.shape)
         output = create(input, input_.dtype, shape)
-        impl.ZCA.split(input_, wrap(output))
+        impl.ZCA._split(input_, wrap(output))
         return output
 
     def save(self, path):
@@ -249,8 +206,8 @@ class ZCA:
         """
 
         mean = spyker.to_numpy(self.mean)
-        trans = spyker.to_numpy(self.trans)
-        numpy.savez(path, mean=mean, trans=trans)
+        transform = spyker.to_numpy(self.transform)
+        numpy.savez(path, mean=mean, transform=transform)
 
     def load(self, path):
         """
@@ -264,9 +221,10 @@ class ZCA:
 
         data = numpy.load(path)
         wrap(data['mean']).to(self.mean)
-        wrap(data['trans']).to(self.trans)
+        wrap(data['transform']).to(self.transform)
 
-class DoG:
+
+class DoG(impl.DoG):
     """
     2D difference of Gaussian (DoG) filter module
 
@@ -298,17 +256,9 @@ class DoG:
         pad = expand4(pad)
         if isinstance(filter, DoGFilter): filter = [filter]
         filter = [x.get() for x in filter]
-        self.impl = impl.DoG(device, size, filter, pad)
+        super().__init__(device, size, filter, pad)
         self.device = device
         self.pad = pad
-
-    @property
-    def kernel(self):
-        return self.impl.kernel
-    
-    @kernel.setter
-    def kernel(self, kernel):
-        self.impl.kernel = kernel
 
     def __call__(self, input):
         """
@@ -327,12 +277,12 @@ class DoG:
 
         input_ = to4(wrap(input))
         shape = impl.shape.dog(input_.shape, self.kernel.shape, self.pad)
-        output = create(input, impl.f32, shape)
-        self.impl(input_, wrap(output))
+        output = create(input, 'f32', shape)
+        self._forward(input_, wrap(output))
         return output
 
 
-class Gabor:
+class Gabor(impl.Gabor):
     """
     2D Gabor filter module
 
@@ -364,17 +314,9 @@ class Gabor:
         pad = expand4(pad)
         if isinstance(filter, GaborFilter): filter = [filter]
         filter = [x.get() for x in filter]
-        self.impl = impl.Gabor(device, size, filter, pad)
+        super().__init__(device, size, filter, pad)
         self.device = device
         self.pad = pad
-
-    @property
-    def kernel(self):
-        return self.impl.kernel
-
-    @kernel.setter
-    def kernel(self, kernel):
-        self.impl.kernel = kernel
 
     def __call__(self, input):
         """
@@ -393,12 +335,12 @@ class Gabor:
 
         input_ = to4(wrap(input))
         shape = impl.shape.gabor(input_.shape, self.kernel.shape, self.pad)
-        output = create(input, impl.f32, shape)
-        self.impl(input_, wrap(output))
+        output = create(input, 'f32', shape)
+        self._forward(input_, wrap(output))
         return output
 
 
-class LoG:
+class LoG(impl.LoG):
     """
     2D Laplacian of Gaussian (LoG) filter module
 
@@ -428,17 +370,9 @@ class LoG:
         """
 
         pad = expand4(pad)
-        self.impl = impl.LoG(device, size, std, pad)
+        super().__init__(device, size, std, pad)
         self.device = device
         self.pad = pad
-
-    @property
-    def kernel(self):
-        return self.impl.kernel
-    
-    @kernel.setter
-    def kernel(self, kernel):
-        self.impl.kernel = kernel
 
     def __call__(self, input):
         """
@@ -457,12 +391,12 @@ class LoG:
 
         input_ = to4(wrap(input))
         shape = impl.shape.log(input_.shape, self.kernel.shape, self.pad)
-        output = create(input, impl.f32, shape)
-        self.impl(input_, wrap(output))
+        output = create(input, 'f32', shape)
+        self._forward(input_, wrap(output))
         return output
 
 
-class FC:
+class FC(impl.FC):
     """
     Fully connected module
 
@@ -495,37 +429,10 @@ class FC:
             Standard deviation of the random normal variable that initializes the kernel (default 0.02)
         """
 
-        self.impl = impl.FC(device, input, output, mean, std)
+        super().__init__(device, input, output, mean, std)
         self.device = device
     
-    @property
-    def config(self):
-        return self.impl.config
-
-    @property
-    def kernel(self):
-        return self.impl.kernel
-
-    @property
-    def bpconfig(self):
-        return self.impl.bpconfig
-
-    @kernel.setter
-    def kernel(self, kernel):
-        self.impl.kernel = kernel
-
-    @config.setter
-    def config(self, config):
-        if isinstance(config, STDPConfig):
-            self.impl.config = [config.get()]
-        else: 
-            self.impl.config = [x.get() for x in config]
-
-    @bpconfig.setter
-    def bpconfig(self, config):
-        self.impl.bpconfig = config.get()
-
-    def __call__(self, input):
+    def __call__(self, input, sign=False):
         """
         Apply the fully connected on the input
 
@@ -542,8 +449,8 @@ class FC:
 
         input_ = to3(wrap(input))
         shape = impl.shape.fc(input_.shape, self.kernel.shape)
-        output = create(input, impl.f32, shape)
-        self.impl(input_, wrap(output))
+        output = create(input, 'f32', shape)
+        self._forward(input_, wrap(output), sign)
         return output
 
     def stdp(self, input, winners, output):
@@ -560,16 +467,16 @@ class FC:
             Fully connected output dense tensor
         """
 
-        self.impl.stdp(wrap(input), winners, wrap(output))
+        self._stdp(wrap(input), winners, wrap(output))
 
     def backward(self, input, output, grad):
         input_, grad_ = to2(wrap(input)), to2(wrap(grad))
         next = create(grad, grad_.dtype, input_.shape)
-        self.impl.backward(input_, wrap(output), grad_, wrap(next))
+        self._backward(input_, wrap(output), grad_, wrap(next))
         return next
 
 
-class Conv:
+class Conv(impl.Conv):
     """
     2D convolution module
 
@@ -612,32 +519,12 @@ class Conv:
         stride = expand2(stride)
         pad = expand4(pad)
 
-        self.impl = impl.Conv(device, input, output, kernel, stride, pad, mean, std)
+        super().__init__(device, input, output, kernel, stride, pad, mean, std)
         self.device = device
         self.stride = stride
         self.pad = pad
 
-    @property
-    def kernel(self):
-        return self.impl.kernel
-
-    @property
-    def config(self):
-        return self.impl.config
-
-    @kernel.setter
-    def kernel(self, kernel):
-        self.impl.kernel = kernel
-
-    @config.setter
-    def config(self, config):
-        if isinstance(config, STDPConfig):
-            self.impl.config = [config.get()]
-        else: 
-            self.impl.config = [x.get() for x in config]
-
-
-    def __call__(self, input):
+    def __call__(self, input, threshold=None):
         """
         Apply the convolution on the input
 
@@ -652,13 +539,16 @@ class Conv:
             Convolved output tensor
         """
 
+        if threshold is not None:
+            return self._forward(input, threshold)
+
         input_ = to5(wrap(input))
         shape = impl.shape.conv(input_.shape, self.kernel.shape, self.stride, self.pad)
-        output = create(input, impl.f32, shape)
-        self.impl(input_, wrap(output))
+        output = create(input, 'f32', shape)
+        self._forward(input_, wrap(output))
         return output
 
-    def stdp(self, input, winners, output):
+    def stdp(self, input, winners, output=None):
         """
         Apply STDP to update the weights of convolution
 
@@ -672,55 +562,10 @@ class Conv:
             Convolution output dense tensor
         """
 
-        self.impl.stdp(wrap(input), winners, wrap(output))
-
-
-def fcfwd(fc, input):
-    """
-    Apply fully connected
-
-    Parameters
-    ----------
-    fc : spyker.FC
-        Fully connected class to use
-    input : spyker.tensor or torch.tensor or numpy.ndarray
-        Fully connected input dense tensor
-
-    Returns
-    -------
-    spyker.tensor or torch.tensor or numpy.ndarray
-        Fully connected output dense tensor
-    """
-
-    input_ = to3(wrap(input))
-    shape = impl.shape.fc(input_.shape, fc.kernel.shape)
-    output = create(input, impl.f32, shape)
-    impl.fc(fc.impl, input_, wrap(output))
-    return output
-
-
-def convfwd(conv, input):
-    """
-    Apply 2D Convolution
-
-    Parameters
-    ----------
-    conv : spyker.Conv
-        Convolution class to use
-    input : spyker.tensor or torch.tensor or numpy.ndarray
-        Convolution input dense tensor
-
-    Returns
-    -------
-    spyker.tensor or torch.tensor or numpy.ndarray
-        Convolution output dense tensor
-    """
-
-    input_ = to5(wrap(input))
-    shape = impl.shape.conv(input_.shape, conv.kernel.shape, conv.stride, conv.pad)
-    output = create(input, impl.f32, shape)
-    impl.conv(conv.impl, input_, wrap(output))
-    return output
+        if output is None:
+            self._stdp(input, winners)
+        else:
+            self._stdp(wrap(input), winners, wrap(output))
 
 
 def canny(input, low, high):
@@ -743,12 +588,12 @@ def canny(input, low, high):
     """
 
     input_ = to4(wrap(input))
-    output = create(input, impl.u8, input_.shape)
+    output = create(input, 'u8', input_.shape)
     impl.canny(input_, wrap(output), low, high)
     return output
 
 
-def fc(input, kernel):
+def fc(input, kernel, sign=False):
     """
     Apply fully connected operation
 
@@ -768,8 +613,8 @@ def fc(input, kernel):
     input_ = to3(wrap(input))
     kernel_ = wrap(kernel)
     shape = impl.shape.fc(input_.shape, kernel_.shape)
-    output = create(input, impl.f32, shape)
-    impl.fc(input_, kernel_, wrap(output))
+    output = create(input, 'f32', shape)
+    impl.fc(input_, kernel_, wrap(output), sign)
     return output
 
 
@@ -800,7 +645,7 @@ def conv(input, kernel, stride=1, pad=0):
 
     input_ = to5(wrap(input))
     shape = impl.shape.conv(input_.shape, kernel_.shape, stride, pad)
-    output = create(input, impl.f32, shape)
+    output = create(input, 'f32', shape)
     impl.conv(input_, kernel_, wrap(output), stride, pad)
     return output
 
@@ -889,7 +734,7 @@ def quantize(input, lower, middle, upper, inplace=True):
     return input
 
 
-def code(input, time, sort=True, dtype=impl.u8):
+def code(input, time, sort=True, dtype='u8', code='rank'):
     """
     Apply rank coding
 
@@ -911,7 +756,7 @@ def code(input, time, sort=True, dtype=impl.u8):
     input_ = least2(wrap(input))
     shape = impl.shape.code(input_.shape, time)
     output = create(input, dtype, shape)
-    impl.code(input_, wrap(output), time, sort)
+    impl.code(input_, wrap(output), time, sort, code)
     return output
 
 
@@ -940,7 +785,7 @@ def infinite(input, value=.0, inplace=True):
     return input
 
 
-def fire(input, threshold=.0, dtype=impl.u8):
+def fire(input, threshold=.0, dtype='u8', code='rank'):
     """
     Apply integrate-and-fire mechanism
 
@@ -963,11 +808,11 @@ def fire(input, threshold=.0, dtype=impl.u8):
 
     input_ = wrap(input)
     output = create(input, dtype, input_.shape)
-    impl.fire(input_, wrap(output), threshold)
+    impl.fire(input_, wrap(output), threshold, code)
     return output
 
 
-def gather(input, threshold=.0, dtype=impl.u8):
+def gather(input, threshold=.0, dtype='u8', code='rank'):
     """
     Gather temporal information
 
@@ -990,11 +835,11 @@ def gather(input, threshold=.0, dtype=impl.u8):
 
     input_ = least3(wrap(input))
     output = create(input, dtype, impl.shape.gather(input_.shape))
-    impl.gather(input_, wrap(output), threshold)
+    impl.gather(input_, wrap(output), threshold, code)
     return output
 
 
-def scatter(input, time, dtype=impl.u8):
+def scatter(input, time, dtype='u8'):
     """
     Scatter temporal information
 
@@ -1019,7 +864,7 @@ def scatter(input, time, dtype=impl.u8):
     return output
 
 
-def pool(input, kernel, stride=None, pad=0):
+def pool(input, kernel, stride=None, pad=0, rates=None):
     """
     Apply 2D max pooling
 
@@ -1049,7 +894,8 @@ def pool(input, kernel, stride=None, pad=0):
     input_ = to5(wrap(input))
     shape = impl.shape.pool(input_.shape, kernel, stride, pad)
     output = create(input, input_.dtype, shape)
-    impl.pool(input_, wrap(output), kernel, stride, pad)
+    rates_ = impl.tensor() if rates is None else wrap(rates)
+    impl.pool(input_, wrap(output), kernel, stride, pad, rates_)
     return output
 
 
@@ -1121,23 +967,6 @@ def backward(input, target, time, gamma):
 
 def labelize(input, threshold):
     input_ = wrap(input)
-    output = create(input, impl.i64, [input_.shape[0]])
+    output = create(input, 'i64', [input_.shape[0]])
     impl.labelize(input_, wrap(output), threshold)
-    return output
-
-
-def signfc(input, kernel):
-    input_ = to3(wrap(input))
-    kernel_ = wrap(kernel)
-    shape = impl.shape.fc(input_.shape, kernel_.shape)
-    output = create(input, impl.f32, shape)
-    impl.signfc(input_, kernel_, wrap(output))
-    return output
-
-
-def signfcfwd(fc, input):
-    input_ = to3(wrap(input))
-    shape = impl.shape.fc(input_.shape, fc.kernel.shape)
-    output = create(input, impl.f32, shape)
-    impl.signfc(fc.impl, input_, wrap(output))
     return output

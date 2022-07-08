@@ -119,6 +119,14 @@ enum class Type : I32
     F64,
 };
 
+enum class Code : I32
+{
+    /// Rank coding
+    Rank,
+    /// Rate coding
+    Rate,
+};
+
 /// Get the name of the templated data type.
 template <typename T>
 Type TypeName()

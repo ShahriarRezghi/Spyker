@@ -11,26 +11,26 @@ try: import numpy as np
 except: numpy_avail = False
 
 
-def create_tensor(device, type, shape, pinned=False, unified=False, data=None):
+def create_tensor(device, dtype, shape, pinned=False, unified=False, data=None):
     if data is None:
-        return impl.create_tensor(device, type, shape, pinned, unified)
+        return impl.create_tensor(device, dtype, shape, pinned, unified)
     else:
-        return impl.create_tensor(data, device, type, shape, pinned, unified)
+        return impl.create_tensor(data, device, dtype, shape, pinned, unified)
 
 
-def torch2type(type):
-    if type == torch.int8: return impl.i8
-    if type == torch.int16: return impl.i16
-    if type == torch.int32: return impl.i32
-    if type == torch.int64: return impl.i64
-    if type == torch.uint8: return impl.u8
-    # if type == torch.uint16: return impl.u16
-    # if type == torch.uint32: return impl.u32
-    # if type == torch.uint64: return impl.u64
-    if type == torch.float16: return impl.f16
-    if type == torch.float32: return impl.f32
-    if type == torch.float64: return impl.f64
-    raise TypeError(f'Given PyTorch tensor data type {type} is not supported.')
+def torch2type(dtype):
+    if dtype == torch.int8: return 'i8'
+    if dtype == torch.int16: return 'i16'
+    if dtype == torch.int32: return 'i32'
+    if dtype == torch.int64: return 'i64'
+    if dtype == torch.uint8: return 'u8'
+    # if dtype == torch.uint16: return 'u16'
+    # if dtype == torch.uint32: return 'u32'
+    # if dtype == torch.uint64: return 'u64'
+    if dtype == torch.float16: return 'f16'
+    if dtype == torch.float32: return 'f32'
+    if dtype == torch.float64: return 'f64'
+    raise TypeError(f'Given PyTorch tensor data type {dtype} is not supported.')
 
 
 def torch2device(device):
@@ -45,19 +45,19 @@ def wrap_torch(input):
     return create_tensor(torch2device(input.device), torch2type(input.dtype), input.shape, data=input.data_ptr())
 
 
-def numpy2type(type):
-    if type == np.int8: return impl.i8
-    if type == np.int16: return impl.i16
-    if type == np.int32: return impl.i32
-    if type == np.int64: return impl.i64
-    if type == np.uint8: return impl.u8
-    if type == np.uint16: return impl.u16
-    if type == np.uint32: return impl.u32
-    if type == np.uint64: return impl.u64
-    if type == np.float16: return impl.f16
-    if type == np.float32: return impl.f32
-    if type == np.float64: return impl.f64
-    raise TypeError('Given Numpy array data type {type} is not supported.')
+def numpy2type(dtype):
+    if dtype == np.int8: return 'i8'
+    if dtype == np.int16: return 'i16'
+    if dtype == np.int32: return 'i32'
+    if dtype == np.int64: return 'i64'
+    if dtype == np.uint8: return 'u8'
+    if dtype == np.uint16: return 'u16'
+    if dtype == np.uint32: return 'u32'
+    if dtype == np.uint64: return 'u64'
+    if dtype == np.float16: return 'f16'
+    if dtype == np.float32: return 'f32'
+    if dtype == np.float64: return 'f64'
+    raise TypeError('Given Numpy array data type {dtype} is not supported.')
 
 
 def wrap_numpy(input, write):
@@ -71,19 +71,19 @@ def wrap_numpy(input, write):
     return create_tensor(impl.device('cpu'), numpy2type(input.dtype), input.shape, data=ptr)
 
 
-def type2torch(type):
-    if type == impl.i8: return torch.int8
-    if type == impl.i16: return torch.int16
-    if type == impl.i32: return torch.int32
-    if type == impl.i64: return torch.int64
-    if type == impl.u8: return torch.uint8
-    # if type == impl.u16: return torch.uint16
-    # if type == impl.u32: return torch.uint32
-    # if type == impl.u64: return torch.uint64
-    if type == impl.f16: return torch.float16
-    if type == impl.f32: return torch.float32
-    if type == impl.f64: return torch.float64
-    raise TypeError(f'Given data data type {type} is not supported by PyTorch.')
+def type2torch(dtype):
+    if dtype == 'i8': return torch.int8
+    if dtype == 'i16': return torch.int16
+    if dtype == 'i32': return torch.int32
+    if dtype == 'i64': return torch.int64
+    if dtype == 'u8': return torch.uint8
+    # if dtype == 'u16': return torch.uint16
+    # if dtype == 'u32': return torch.uint32
+    # if dtype == 'u64': return torch.uint64
+    if dtype == 'f16': return torch.float16
+    if dtype == 'f32': return torch.float32
+    if dtype == 'f64': return torch.float64
+    raise TypeError(f'Given data data type {dtype} is not supported by PyTorch.')
 
 
 def device2torch(device):
@@ -92,27 +92,27 @@ def device2torch(device):
     raise TypeError(f'Given device {device} is not supported by PyTorch.')
 
 
-def create_torch(input, type, shape):
-    return torch.zeros(shape, dtype=type2torch(type), device=input.device)
+def create_torch(input, dtype, shape):
+    return torch.zeros(shape, dtype=type2torch(dtype), device=input.device)
 
 
-def type_numpy(type):
-    if type == impl.i8: return np.int8
-    if type == impl.i16: return np.int16
-    if type == impl.i32: return np.int32
-    if type == impl.i64: return np.int64
-    if type == impl.u8: return np.uint8
-    if type == impl.u16: return np.uint16
-    if type == impl.u32: return np.uint32
-    if type == impl.u64: return np.uint64
-    if type == impl.f16: return np.float16
-    if type == impl.f32: return np.float32
-    if type == impl.f64: return np.float64
-    raise TypeError(f'Given data type {type} is not supported by Numpy.')
+def type_numpy(dtype):
+    if dtype == 'i8': return np.int8
+    if dtype == 'i16': return np.int16
+    if dtype == 'i32': return np.int32
+    if dtype == 'i64': return np.int64
+    if dtype == 'u8': return np.uint8
+    if dtype == 'u16': return np.uint16
+    if dtype == 'u32': return np.uint32
+    if dtype == 'u64': return np.uint64
+    if dtype == 'f16': return np.float16
+    if dtype == 'f32': return np.float32
+    if dtype == 'f64': return np.float64
+    raise TypeError(f'Given data type {dtype} is not supported by Numpy.')
 
 
-def create_numpy(input, type, shape):
-    return np.zeros(shape, dtype=type_numpy(type))
+def create_numpy(input, dtype, shape):
+    return np.zeros(shape, dtype=type_numpy(dtype))
 
 
 def wrap(input, write=False):
@@ -315,7 +315,9 @@ def expand4(shape):
     raise ValueError("Given shape couldn't be expanded to 4D.")
 
 
-def read_mnist(data_path, label_path):
-    data = impl.helper.mnist_data(data_path)
-    label = impl.helper.mnist_label(label_path)
-    return data, label
+def read_mnist(train_images, train_labels, test_images, test_labels):
+    TRX = impl.helper.mnist_data(train_images)
+    TRY = impl.helper.mnist_label(train_labels)
+    TEX = impl.helper.mnist_data(test_images)
+    TEY = impl.helper.mnist_label(test_labels)
+    return TRX, TRY, TEX, TEY

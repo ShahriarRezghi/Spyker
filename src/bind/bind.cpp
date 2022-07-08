@@ -22,6 +22,53 @@ Kind str2kind(std::string kind)
     SpykerAssert(false, "Binding", "Unknown device given.");
 }
 
+std::string kind2str(Kind kind)
+{
+    if (kind == Kind::CPU) return "cpu";
+    if (kind == Kind::CUDA) return "cuda";
+    SpykerAssert(false, "Binding", "Unknown device given.");
+}
+
+Code str2code(std::string code)
+{
+    for (auto &c : code) c = std::tolower(c);
+    if (code == "rate") return Code::Rate;
+    if (code == "rank") return Code::Rank;
+    SpykerAssert(false, "Binding", "Unknown codeing given.");
+}
+
+Type str2type(std::string type)
+{
+    if (type == "i8") return Type::I8;
+    if (type == "i16") return Type::I16;
+    if (type == "i32") return Type::I32;
+    if (type == "i64") return Type::I64;
+    if (type == "u8") return Type::U8;
+    if (type == "u16") return Type::U16;
+    if (type == "u32") return Type::U32;
+    if (type == "u64") return Type::U64;
+    if (type == "f16") return Type::F16;
+    if (type == "f32") return Type::F32;
+    if (type == "f64") return Type::F64;
+    SpykerAssert(false, "Binding", "Unknown type given.");
+}
+
+std::string type2str(Type type)
+{
+    if (type == Type::I8) return "i8";
+    if (type == Type::I16) return "i6";
+    if (type == Type::I32) return "i32";
+    if (type == Type::I64) return "i64";
+    if (type == Type::U8) return "u8";
+    if (type == Type::U16) return "u6";
+    if (type == Type::U32) return "u32";
+    if (type == Type::U64) return "u64";
+    if (type == Type::F16) return "f16";
+    if (type == Type::F32) return "f32";
+    if (type == Type::F64) return "f64";
+    SpykerAssert(false, "Binding", "Unknown type given.");
+}
+
 PYBIND11_MODULE(spyker_plugin, m)
 {
     auto version = m.def_submodule("version");
@@ -58,20 +105,6 @@ PYBIND11_MODULE(spyker_plugin, m)
         .def("cuda_cache_clear", []() { return cudaCacheClear(); })
         .def("cuda_cache_print", []() { return cudaCachePrint(); });
 
-    py::enum_<Type>(m, "type")  //
-        .value("i8", Type::I8)
-        .value("i16", Type::I16)
-        .value("i32", Type::I32)
-        .value("i64", Type::I64)
-        .value("u8", Type::U8)
-        .value("u16", Type::U16)
-        .value("u32", Type::U32)
-        .value("u64", Type::U64)
-        .value("f16", Type::F16)
-        .value("f32", Type::F32)
-        .value("f64", Type::F64)
-        .export_values();
-
     py::class_<Winner>(m, "Winner")
         .def(py::init<Size, Size, Size>())
         .def_readwrite("c", &Winner::c)
@@ -83,21 +116,17 @@ PYBIND11_MODULE(spyker_plugin, m)
     py::class_<Device>(m, "device")
         .def(py::init([](std::string kind) { return new Device(str2kind(kind)); }))
         .def(py::init([](std::string kind, I32 index) { return new Device(str2kind(kind), index); }))
-        .def_property_readonly("kind",
-                               [](const Device &device) {
-                                   if (device.kind() == Kind::CPU) return std::string("cpu");
-                                   if (device.kind() == Kind::CUDA) return std::string("cuda");
-                                   return std::string("unknown");
-                               })
+        .def_property_readonly("kind", [](const Device &device) { return kind2str(device.kind()); })
         .def_property_readonly("index", &Device::index)
         .def("__eq__", [](const Device &device, const Device &other) { return device == other; })
         .def("__eq__", [](const Device &device, std::string kind) { return device == str2kind(kind); });
 
-    m.def("create_tensor", [](Device device, Type type, Shape shape, bool pinned, bool unified) {
-        return new Tensor(device, type, shape, pinned, unified);
+    m.def("create_tensor", [](Device device, std::string type, Shape shape, bool pinned, bool unified) {
+        return new Tensor(device, str2type(type), shape, pinned, unified);
     });
-    m.def("create_tensor", [](I64 data, Device device, Type type, Shape shape, bool pinned, bool unified) {
-        return new Tensor(std::shared_ptr<void>((void *)data, [](void *) {}), device, type, shape, pinned, unified);
+    m.def("create_tensor", [](I64 data, Device device, std::string type, Shape shape, bool pinned, bool unified) {
+        return new Tensor(std::shared_ptr<void>((void *)data, [](void *) {}), device, str2type(type), shape, pinned,
+                          unified);
     });
 
     py::class_<Tensor>(m, "tensor", py::buffer_protocol())
@@ -105,9 +134,9 @@ PYBIND11_MODULE(spyker_plugin, m)
         .def_property_readonly("numel", &Tensor::numel)
         .def_property_readonly("bytes", &Tensor::bytes)
         .def_property_readonly("dims", &Tensor::dims)
-        .def_property_readonly("dtype", &Tensor::type)
         .def_property_readonly("device", &Tensor::device)
         .def_property_readonly("shape", [](Tensor &tensor) { return tensor.shape(); })
+        .def_property_readonly("dtype", [](Tensor &tensor) { return type2str(tensor.type()); })
 
         .def("pinned", &Tensor::pinned)
         .def("unified", &Tensor::unified)
@@ -130,7 +159,7 @@ PYBIND11_MODULE(spyker_plugin, m)
         .def("__getitem__", &Tensor::operator[])
         .def("fill", [](Tensor &tensor, F64 data) { return tensor.fill(data); })
         .def("copy", &Tensor::copy)
-        .def("to", [](Tensor &tensor, Type type) { return tensor.to(type); })
+        .def("to", [](Tensor &tensor, std::string type) { return tensor.to(str2type(type)); })
         .def("to", [](Tensor &tensor, Device device) { return tensor.to(device); })
         .def("to", [](Tensor &tensor, const Tensor &other) { return tensor.to(other); })
         .def("from_", &Tensor::from)
@@ -214,105 +243,90 @@ PYBIND11_MODULE(spyker_plugin, m)
 
     py::class_<ZCA>(m, "ZCA")
         .def(py::init())
-        .def(py::init<Tensor, F64, bool>())
         .def_readwrite("mean", &ZCA::mean)
         .def_readwrite("transform", &ZCA::transform)
-        .def("__call__", [](ZCA &layer, Tensor input) { layer(input); })
-        .def_static("split", [](Tensor input, Tensor output) { ZCA::split(input, output); })
-        .def("fit",
+        .def("_forward", [](ZCA &layer, Tensor input) { layer(input); })
+        .def_static("_split", [](Tensor input, Tensor output) { ZCA::split(input, output); })
+        .def("_fit",
              [](ZCA &layer, Tensor input, F64 epsilon, bool transform) { layer.fit(input, epsilon, transform); });
 
     py::class_<DoG>(m, "DoG")
         .def(py::init<Device, Size, const std::vector<DoGFilter> &, Shape>())
         .def_readwrite("kernel", &DoG::kernel)
-        .def("__call__", [](DoG &layer, Tensor input, Tensor output) { layer(input, output); });
+        .def("_forward", [](DoG &layer, Tensor input, Tensor output) { layer(input, output); });
 
     py::class_<Gabor>(m, "Gabor")
         .def(py::init<Device, Size, const std::vector<GaborFilter> &, Shape>())
         .def_readwrite("kernel", &Gabor::kernel)
-        .def("__call__", [](Gabor &layer, Tensor input, Tensor output) { layer(input, output); });
+        .def("_forward", [](Gabor &layer, Tensor input, Tensor output) { layer(input, output); });
 
     py::class_<LoG>(m, "LoG")
         .def(py::init<Device, Size, const std::vector<F32> &, Shape>())
         .def_readwrite("kernel", &LoG::kernel)
-        .def("__call__", [](LoG &layer, Tensor input, Tensor output) { layer(input, output); });
+        .def("_forward", [](LoG &layer, Tensor input, Tensor output) { layer(input, output); });
 
     py::class_<FC>(m, "FC")
         .def(py::init<Device, Size, Size, F32, F32>())
         .def_readwrite("kernel", &FC::kernel)
-        .def_readwrite("config", &FC::config)
+        .def_readwrite("stdpconfig", &FC::stdpconfig)
         .def_readwrite("bpconfig", &FC::bpconfig)
-        .def("__call__", [](FC &layer, Tensor input, Tensor output) { return layer(input, output); })
-        .def("stdp",
+        .def("_forward", [](FC &layer, Tensor input, Tensor output, bool sign) { return layer(input, output, sign); })
+        .def("_stdp",
              [](FC &layer, Tensor input, const Winners &winners, Tensor output) { layer.stdp(input, winners, output); })
-        .def("backward", [](FC &layer, Tensor input, Tensor output, Tensor grad, Tensor next) {
+        .def("_backward", [](FC &layer, Tensor input, Tensor output, Tensor grad, Tensor next) {
             layer.backward(input, output, grad, next);
         });
 
     py::class_<Conv>(m, "Conv")
         .def(py::init<Device, Size, Size, Shape, Shape, Shape, F32, F32>())
         .def_readwrite("kernel", &Conv::kernel)
-        .def_readwrite("config", &Conv::config)
-        .def("__call__", [](Conv &layer, Tensor input, Tensor output) { layer(input, output); })
-        .def("stdp", [](Conv &layer, Tensor input, const Winners &winners, Tensor output) {
-            layer.stdp(input, winners, output);
-        });
+        .def_readwrite("stdpconfig", &Conv::stdpconfig)
+        .def("_forward", [](Conv &layer, Tensor input, Tensor output) { layer(input, output); })
+        .def("_forward", [](Conv &layer, SparseTensor input, F64 threshold) { return layer(input, threshold); })
+        .def("_stdp", [](Conv &layer, Tensor input, const Winners &winners,
+                         Tensor output) { layer.stdp(input, winners, output); })
+        .def("_stdp", [](Conv &layer, SparseTensor input, const Winners &winners) { layer.stdp(input, winners); });
 
-    m.def("canny", [](Tensor input, Tensor output, F64 low, F64 high) { Spyker::canny(input, output, low, high); })
-        .def("fc", [](Tensor input, Tensor kernel, Tensor output) { Spyker::fc(input, kernel, output); })
-        .def("fc", [](FC &fc, Tensor input, Tensor output) { Spyker::fc(fc, input, output); })
-        .def("signfc", [](Tensor input, Tensor kernel, Tensor output) { Spyker::signfc(input, kernel, output); })
-        .def("signfc", [](FC &fc, Tensor input, Tensor output) { Spyker::signfc(fc, input, output); })
+    m.def("canny", [](Tensor input, Tensor output, F32 low, F32 high) { Spyker::canny(input, output, low, high); })
         .def("conv", [](Tensor input, Tensor kernel, Tensor output, Shape stride,
                         Shape pad) { Spyker::conv(input, kernel, output, stride, pad); })
-        .def("conv", [](Conv &conv, Tensor input, Tensor output) { Spyker::conv(conv, input, output); })
-        .def("pad", [](Tensor input, Tensor output, Shape pad, F64 value) { Spyker::pad(input, output, pad, value); })
-        .def("threshold", [](Tensor input, F64 threshold, F64 value) { Spyker::threshold(input, threshold, value); })
-        .def("quantize",
-             [](Tensor input, F64 lower, F64 middle, F64 upper) { Spyker::quantize(input, lower, middle, upper); })
-        .def("code", [](Tensor input, Tensor output, Size time, bool sort) { Spyker::code(input, output, time, sort); })
-        .def("infinite", [](Tensor input, F64 value) { Spyker::infinite(input, value); })
-        .def("fire", [](Tensor input, Tensor output, F64 threshold) { Spyker::fire(input, output, threshold); })
-        .def("gather", [](Tensor input, Tensor output, F64 threshold) { Spyker::gather(input, output, threshold); })
+        .def("fc",
+             [](Tensor input, Tensor kernel, Tensor output, bool sign) { Spyker::fc(input, kernel, output, sign); })
+        .def("pad", [](Tensor input, Tensor output, Shape pad, F32 value) { Spyker::pad(input, output, pad, value); })
+        .def("threshold",
+             [](Tensor input, F32 threshold, F32 value) { Spyker::threshold(input, threshold, value, true); })
+        .def("quantize", [](Tensor input, F32 lower, F32 middle,
+                            F32 upper) { Spyker::quantize(input, lower, middle, upper, true); })
+        .def("code", [](Tensor input, Tensor output, Size time, bool sort,
+                        std::string code) { Spyker::code(input, output, time, sort, str2code(code)); })
+        .def("infinite", [](Tensor input, F32 value) { Spyker::infinite(input, value, true); })
+        .def("fire", [](Tensor input, Tensor output, F32 threshold,
+                        std::string code) { Spyker::fire(input, output, threshold, str2code(code)); })
+        .def("gather", [](Tensor input, Tensor output, F32 threshold,
+                          std::string code) { Spyker::gather(input, output, threshold, str2code(code)); })
         .def("scatter", [](Tensor input, Tensor output) { Spyker::scatter(input, output); })
-        .def("pool", [](Tensor input, Tensor output, Shape kernel, Shape stride,
-                        Shape pad) { Spyker::pool(input, output, kernel, stride, pad); })
-        .def("inhibit", [](Tensor input, F64 threshold) { Spyker::inhibit(input, threshold); })
+        .def("pool", [](Tensor input, Tensor output, Shape kernel, Shape stride, Shape pad,
+                        Tensor rates) { Spyker::pool(input, output, kernel, stride, pad, rates); })
+        .def("inhibit", [](Tensor input, F32 threshold) { Spyker::inhibit(input, threshold, true); })
         .def("fcwta", [](Tensor input, Size radius, Size count,
-                         F64 threshold) { return Spyker::fcwta(input, radius, count, threshold); })
+                         F32 threshold) { return Spyker::fcwta(input, radius, count, threshold); })
         .def("convwta", [](Tensor input, Shape radius, Size count,
-                           F64 threshold) { return Spyker::convwta(input, radius, count, threshold); })
-        .def("stdp", [](Conv &conv, Tensor input, const Winners &winners,
-                        Tensor output) { Spyker::stdp(conv, input, winners, output); })
-        .def("stdp", [](FC &fc, Tensor input, const Winners &winners,
-                        Tensor output) { Spyker::stdp(fc, input, winners, output); })
+                           F32 threshold) { return Spyker::convwta(input, radius, count, threshold); })
         .def("backward", [](Tensor input, Tensor output, Tensor target, Size time,
-                            F64 gamma) { return Spyker::backward(input, output, target, time, gamma); })
+                            F32 gamma) { Spyker::backward(input, output, target, time, gamma); })
         .def("labelize",
-             [](Tensor input, Tensor output, F64 threshold) { return Spyker::labelize(input, output, threshold); });
-
-    using namespace Spyker::Rate;
-    m.def_submodule("rate")
-        .def("code", [](Tensor input, Tensor output, Size time, bool sort) { Rate::code(input, output, time, sort); })
-        .def("fire", [](Tensor input, Tensor output, F64 threshold) { Rate::fire(input, output, threshold); })
-        .def("gather", [](Tensor input, Tensor output, F64 threshold) { Rate::gather(input, output, threshold); })
-        .def("pool", [](Tensor input, Tensor rates, Tensor output, Shape kernel, Shape stride, Shape pad) {
-            Rate::pool(input, rates, output, kernel, stride, pad);
-        });
+             [](Tensor input, Tensor output, F32 threshold) { Spyker::labelize(input, output, threshold); });
 
     using namespace Spyker::Sparse;
     m.def_submodule("sparse")
-        .def("conv", [](Conv &conv, SparseTensor input, F64 threshold) { return Sparse::conv(conv, input, threshold); })
         .def("conv", [](SparseTensor input, Tensor kernel, F64 threshold, Shape stride,
                         Shape pad) { return Sparse::conv(input, kernel, threshold, stride, pad); })
         .def("pad", [](SparseTensor input, Shape pad) { return Sparse::pad(input, pad); })
         .def("code", [](Tensor input, Size time, bool sort) { return Sparse::code(input, time, sort); })
-        .def("gather", [](SparseTensor input, Type type) { return Sparse::gather(input, type); })
+        .def("gather", [](SparseTensor input, std::string type) { return Sparse::gather(input, str2type(type)); })
         .def("pool", [](SparseTensor input, Shape kernel, Shape stride,
                         Shape pad) { return Sparse::pool(input, kernel, stride, pad); })
         .def("inhibit", [](SparseTensor input) { return Sparse::inhibit(input); })
         .def("convwta",
-             [](SparseTensor input, Shape radius, Size count) { return Sparse::convwta(input, radius, count); })
-        .def("stdp",
-             [](Conv &conv, SparseTensor input, const Winners &winners) { return Sparse::stdp(conv, input, winners); });
+             [](SparseTensor input, Shape radius, Size count) { return Sparse::convwta(input, radius, count); });
 }

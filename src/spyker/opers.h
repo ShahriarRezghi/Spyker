@@ -327,12 +327,6 @@ public:
     /// Empty initialization.
     ZCA();
 
-    /// Initialize and fit the input data
-    /// @param [in, out] input input data to be fitted to.
-    /// @param epsilon epsilon parameter of the trnasformation.
-    /// @param transform whether to transform the input inplace or not (default false).
-    ZCA(Tensor input, Scalar epsilon, bool transform = false);
-
     /// Fit the input data
     /// @param[in, out] input input data to be fitted to.
     /// @param epsilon epsilon parameter of the trnasformation.
@@ -358,29 +352,6 @@ public:
     static Tensor split(Tensor input);
 };
 
-class Conv;
-
-class FC;
-
-SpykerExport Tensor conv(Conv &conv, Tensor input);
-
-SpykerExport Tensor conv(Conv &conv, Tensor input, Tensor output);
-
-SpykerExport Tensor fc(FC &fc, Tensor input);
-
-SpykerExport Tensor fc(FC &fc, Tensor input, Tensor output);
-
-SpykerExport void stdp(Conv &conv, Tensor input, const Winners &winners, Tensor output);
-
-SpykerExport void stdp(FC &fc, Tensor input, const Winners &winners, Tensor output);
-
-namespace Sparse
-{
-SpykerExport SparseTensor conv(Conv &conv, SparseTensor input, F64 threshold);
-
-SpykerExport void stdp(Conv &conv, SparseTensor input, const Winners &winners);
-}  // namespace Sparse
-
 /// 2D convolution module.
 class SpykerExport Conv
 {
@@ -389,22 +360,12 @@ class SpykerExport Conv
     Expand2 _stride;
     Expand4 _pad;
 
-    friend Tensor conv(Conv &conv, Tensor input);
-
-    friend Tensor conv(Conv &conv, Tensor input, Tensor output);
-
-    friend void stdp(Conv &conv, Tensor input, const Winners &winners, Tensor output);
-
-    friend SparseTensor Sparse::conv(Conv &conv, SparseTensor input, F64 threshold);
-
-    friend void Sparse::stdp(Conv &conv, SparseTensor input, const Winners &winners);
-
 public:
     /// Kernel of the module.
     Tensor kernel;
 
     /// List of STDP configurations.
-    std::vector<STDPConfig> config;
+    std::vector<STDPConfig> stdpconfig;
 
     /// Module can't be used when initialized this way.
     Conv();
@@ -441,12 +402,29 @@ public:
     /// @return convolved output dense tensor.
     Tensor operator()(Tensor input);
 
+    // TODO
+    /// Apply 2D Convolution
+    ///
+    /// @param conv convlution class to be used.
+    /// @param input input sparse tensor to be convolved.
+    /// @param threshold threshold to be applied to potentials.
+    /// @return convolution and intergreate-and-fire output spikes.
+    SparseTensor operator()(SparseTensor input, Scalar threshold);
+
     /// Apply the STDP on the convolution.
     ///
     /// @param[in] input convolution input dense tensor.
     /// @param winners winner neurons that are selected for updating.
     /// @param[in] output convolution output dense tensor.
     void stdp(Tensor input, const Winners &winners, Tensor output);
+
+    // TODO
+    /// Apply the STDP on the convolution.
+    ///
+    /// @param conv convolution class to be used.
+    /// @param input convolution input sparse tensor.
+    /// @param winners winner neurons that are selected for updating.
+    void stdp(SparseTensor input, const Winners &winners);
 
     /// Get the device of this module.
     Device device() const;
@@ -458,22 +436,12 @@ class SpykerExport FC
     bool _init;
     Device _device;
 
-    friend Tensor fc(FC &fc, Tensor input);
-
-    friend Tensor fc(FC &fc, Tensor input, Tensor output);
-
-    friend void stdp(FC &fc, Tensor input, const Winners &winners, Tensor output);
-
-    friend Tensor signfc(FC &fc, Tensor input);
-
-    friend Tensor signfc(FC &fc, Tensor input, Tensor output);
-
 public:
     /// Kernel of the module.
     Tensor kernel;
 
     /// List of STDP configurations.
-    std::vector<STDPConfig> config;
+    std::vector<STDPConfig> stdpconfig;
 
     /// Backpropagation configutation.
     BPConfig bpconfig;
@@ -498,13 +466,13 @@ public:
     ///
     /// @param[in] input input dense tensor to be processed.
     /// @param[out] output dense tensor to be written to.
-    Tensor operator()(Tensor input, Tensor output);
+    Tensor operator()(Tensor input, Tensor output, bool sign = false);
 
     /// Apply the fully connected on the input.
     ///
     /// @param[in] input input dense tensor to be processed.
     /// @return fully connected output dense tensor.
-    Tensor operator()(Tensor input);
+    Tensor operator()(Tensor input, bool sign = false);
 
     /// Backpropagate and return the gradient.
     Tensor backward(Tensor input, Tensor output, Tensor grad);
@@ -559,27 +527,12 @@ SpykerExport Tensor conv(Tensor input, Tensor kernel, Expand2 stride = 1, Expand
 /// @return the output tensor.
 SpykerExport Tensor conv(Tensor input, Tensor kernel, Tensor output, Expand2 stride = 1, Expand4 pad = 0);
 
-/// Apply 2D Convolution.
-///
-/// @param conv convolution class to use.
-/// @param[in] input convolution input dense tensor.
-/// @return convolution output dense tensor.
-SpykerExport Tensor conv(Conv &conv, Tensor input);
-
-/// Apply 2D Convolution.
-///
-/// @param conv convolution class to use.
-/// @param[in] input convolution input dense tensor.
-/// @param[out] output convolution output dense tensor.
-/// @return the output tensor.
-SpykerExport Tensor conv(Conv &conv, Tensor input, Tensor output);
-
 /// Apply fully connected.
 ///
 /// @param[in] input fully connected input dense tensor.
 /// @param[in] kernel fully connected kernel dense tensor.
 /// @return fully connected output dense tensor.
-SpykerExport Tensor fc(Tensor input, Tensor kernel);
+SpykerExport Tensor fc(Tensor input, Tensor kernel, bool sign = false);
 
 /// Apply fully connected.
 ///
@@ -587,22 +540,7 @@ SpykerExport Tensor fc(Tensor input, Tensor kernel);
 /// @param[in] kernel fully connected kernel dense tensor.
 /// @param[out] output fully connected output dense tensor.
 /// @return the output tensor.
-SpykerExport Tensor fc(Tensor input, Tensor kernel, Tensor output);
-
-/// Apply fully connected.
-///
-/// @param fc fully connected class to use.
-/// @param[in] input fully connected input dense tensor.
-/// @return fully connected output dense tensor.
-SpykerExport Tensor fc(FC &fc, Tensor input);
-
-/// Apply fully connected.
-///
-/// @param fc fully connected class to use.
-/// @param[in] input fully connected input dense tensor.
-/// @param[out] output fully connected output dense tensor.
-/// @return the output tensor.
-SpykerExport Tensor fc(FC &fc, Tensor input, Tensor output);
+SpykerExport Tensor fc(Tensor input, Tensor kernel, Tensor output, bool sign = false);
 
 /// Apply 2D padding.
 ///
@@ -650,7 +588,7 @@ SpykerExport Tensor quantize(Tensor input, Scalar lower, Scalar middle, Scalar u
 /// Sorting might increase accuracy but it deceases performance (default true).
 /// @param type data type of the created output tensor (default Type::U8).
 /// @return rank coding output dense tensor.
-SpykerExport Tensor code(Tensor input, Size time, bool sort = true, Type type = Type::U8);
+SpykerExport Tensor code(Tensor input, Size time, bool sort = true, Type type = Type::U8, Code code = Code::Rank);
 
 /// Apply rank coding.
 ///
@@ -660,7 +598,7 @@ SpykerExport Tensor code(Tensor input, Size time, bool sort = true, Type type = 
 /// @param sort whether to sort the values or not.
 /// Sorting might increase accuracy but it deceases performance (default true).
 /// @return the output tensor.
-SpykerExport Tensor code(Tensor input, Tensor output, Size time, bool sort = true);
+SpykerExport Tensor code(Tensor input, Tensor output, Size time, bool sort = true, Code code = Code::Rank);
 
 /// Apply infinite thresholding.
 ///
@@ -678,7 +616,7 @@ SpykerExport Tensor infinite(Tensor input, Scalar value = 0, bool inplace = true
 /// @param threshold threshold of firing (default 0).
 /// @param type data type of the created output tensor (default Type::U8).
 /// @return integrate-and-fire output dense tensor.
-SpykerExport Tensor fire(Tensor input, Scalar threshold = 0, Type type = Type::U8);
+SpykerExport Tensor fire(Tensor input, Scalar threshold = 0, Type type = Type::U8, Code code = Code::Rank);
 
 /// Apply integrate-and-fire mechanism.
 ///
@@ -688,7 +626,7 @@ SpykerExport Tensor fire(Tensor input, Scalar threshold = 0, Type type = Type::U
 /// @param[out] output output dense tensor.
 /// @param threshold threshold of firing (default 0).
 /// @return the output tensor.
-SpykerExport Tensor fire(Tensor input, Tensor output, Scalar threshold = 0);
+SpykerExport Tensor fire(Tensor input, Tensor output, Scalar threshold = 0, Code code = Code::Rank);
 
 /// Gather temporal information.
 ///
@@ -698,7 +636,7 @@ SpykerExport Tensor fire(Tensor input, Tensor output, Scalar threshold = 0);
 /// @param threshold threshold of integrate-and-fire layer (default 0).
 /// @param type data type of the created output tensor (default Type::U8).
 /// @return gathered output dense tensor.
-SpykerExport Tensor gather(Tensor input, Scalar threshold = 0, Type type = Type::U8);
+SpykerExport Tensor gather(Tensor input, Scalar threshold = 0, Type type = Type::U8, Code code = Code::Rank);
 
 /// Gather temporal information.
 ///
@@ -708,7 +646,7 @@ SpykerExport Tensor gather(Tensor input, Scalar threshold = 0, Type type = Type:
 /// @param[out] output output dense tensor.
 /// @param threshold threshold of integrate-and-fire layer (default 0).
 /// @return the output tensor.
-SpykerExport Tensor gather(Tensor input, Tensor output, Scalar threshold = 0);
+SpykerExport Tensor gather(Tensor input, Tensor output, Scalar threshold = 0, Code code = Code::Rank);
 
 /// Scatter gathered temporal information.
 ///
@@ -732,7 +670,7 @@ SpykerExport Tensor scatter(Tensor input, Tensor output);
 /// @param stride convolution stride. Zero stride means same as kernel (default 0).
 /// @param pad input padding (default 0).
 /// @return pooling output dense tensor.
-SpykerExport Tensor pool(Tensor input, Expand2 kernel, Expand2 stride = 0, Expand4 pad = 0);
+SpykerExport Tensor pool(Tensor input, Expand2 kernel, Expand2 stride = 0, Expand4 pad = 0, Tensor rates = {});
 
 /// Apply 2D pooling.
 ///
@@ -742,7 +680,8 @@ SpykerExport Tensor pool(Tensor input, Expand2 kernel, Expand2 stride = 0, Expan
 /// @param stride convolution stride. Zero stride means same as kernel (default 0).
 /// @param pad input padding (default 0).
 /// @return the output tensor.
-SpykerExport Tensor pool(Tensor input, Tensor output, Expand2 kernel, Expand2 stride = 0, Expand4 pad = 0);
+SpykerExport Tensor pool(Tensor input, Tensor output, Expand2 kernel, Expand2 stride = 0, Expand4 pad = 0,
+                         Tensor rates = {});
 
 /// Apply lateral Inhibition (inplace).
 ///
@@ -776,22 +715,6 @@ SpykerExport Winners fcwta(Tensor input, Size radius, Size count, Scalar thresho
 /// @return winner neurons.
 SpykerExport Winners convwta(Tensor input, Expand2 radius, Size count, Scalar threshold = 0);
 
-/// Apply the STDP on the convolution.
-///
-/// @param conv convolution class to be used.
-/// @param[in] input convolution input dense tensor.
-/// @param winners winner neurons that are selected for updating.
-/// @param[in] output convolution output dense tensor.
-SpykerExport void stdp(Conv &conv, Tensor input, const Winners &winners, Tensor output);
-
-/// Apply the STDP on the convolution.
-///
-/// @param fc fully connected class to be used.
-/// @param[in] input convolution input dense tensor.
-/// @param winners winner neurons that are selected for updating.
-/// @param[in] output convolution output dense tensor.
-SpykerExport void stdp(FC &fc, Tensor input, const Winners &winners, Tensor output);
-
 SpykerExport Tensor backward(Tensor input, Tensor target, Size time, Scalar gamma);
 
 SpykerExport Tensor backward(Tensor input, Tensor output, Tensor target, Size time, Scalar gamma);
@@ -800,44 +723,8 @@ SpykerExport Tensor labelize(Tensor input, Scalar threshold);
 
 SpykerExport Tensor labelize(Tensor input, Tensor output, Scalar threshold);
 
-SpykerExport Tensor signfc(Tensor input, Tensor kernel);
-
-SpykerExport Tensor signfc(Tensor input, Tensor kernel, Tensor output);
-
-SpykerExport Tensor signfc(FC &fc, Tensor input);
-
-SpykerExport Tensor signfc(FC &fc, Tensor input, Tensor output);
-
-namespace Rate
-{
-SpykerExport Tensor code(Tensor input, Size time, bool sort = true, Type type = Type::U8);
-
-SpykerExport Tensor code(Tensor input, Tensor output, Size time, bool sort = true);
-
-SpykerExport Tensor fire(Tensor input, Scalar threshold = 0, Type type = Type::U8);
-
-SpykerExport Tensor fire(Tensor input, Tensor output, Scalar threshold = 0);
-
-SpykerExport Tensor gather(Tensor input, Scalar threshold = 0, Type type = Type::U8);
-
-SpykerExport Tensor gather(Tensor input, Tensor output, Scalar threshold = 0);
-
-SpykerExport Tensor pool(Tensor input, Tensor rates, Expand2 kernel, Expand2 stride = 0, Expand4 pad = 0);
-
-SpykerExport Tensor pool(Tensor input, Tensor rates, Tensor output, Expand2 kernel, Expand2 stride = 0,
-                         Expand4 pad = 0);
-}  // namespace Rate
-
 namespace Sparse
 {
-/// Apply 2D Convolution
-///
-/// @param conv convlution class to be used.
-/// @param input input sparse tensor to be convolved.
-/// @param threshold threshold to be applied to potentials.
-/// @return convolution and intergreate-and-fire output spikes.
-SpykerExport SparseTensor conv(Conv &conv, SparseTensor input, F64 threshold);
-
 /// Apply 2D Convolution
 ///
 /// @param input input sparse tensor to be convolved.
@@ -846,7 +733,8 @@ SpykerExport SparseTensor conv(Conv &conv, SparseTensor input, F64 threshold);
 /// @param stride convolution stride (default 1).
 /// @param pad input padding (default 0).
 /// @return convolution and intergreate-and-fire output sparse spikes.
-SpykerExport SparseTensor conv(SparseTensor input, Tensor kernel, F64 threshold, Expand2 stride = 1, Expand4 pad = 0);
+SpykerExport SparseTensor conv(SparseTensor input, Tensor kernel, Scalar threshold, Expand2 stride = 1,
+                               Expand4 pad = 0);
 
 /// Apply 2D padding.
 ///
@@ -900,12 +788,5 @@ SpykerExport SparseTensor inhibit(SparseTensor input);
 /// @param count number of neurons that will be selected.
 /// @return winner neurons.
 SpykerExport Winners convwta(SparseTensor input, Expand2 radius, Size count);
-
-/// Apply the STDP on the convolution.
-///
-/// @param conv convolution class to be used.
-/// @param input convolution input sparse tensor.
-/// @param winners winner neurons that are selected for updating.
-SpykerExport void stdp(Conv &conv, SparseTensor input, const Winners &winners);
 }  // namespace Sparse
 }  // namespace Spyker
