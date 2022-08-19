@@ -67,6 +67,10 @@ if(ENABLE_BLAS)
     set(BLAS_ENABLED ON)
     set(LIBRARY_BLAS BLASW::BLASW)
     set(DEFINE_BLAS SPYKER_USE_BLAS)
+
+    if(CBLAS_MKL)
+        set(DEFINE_BLAS ${DEFINE_BLAS} SPYKER_USE_MKL)
+    endif()
 endif()
 
 # DNNL Library
@@ -171,7 +175,6 @@ file(GLOB PYTHON_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/bind/*.cpp")
 
 # Dependencies
-add_subdirectory(3rd/serio)
 find_package(OpenMP REQUIRED)
 
 # The Library
@@ -185,7 +188,7 @@ target_include_directories(spyker PUBLIC
 target_link_libraries(spyker PUBLIC
     OpenMP::OpenMP_CXX)
 target_link_libraries(spyker PRIVATE
-    serio ${LIBRARY_BLAS} ${LIBRARY_CUDA} ${LIBRARY_DNNL} ${LIBRARY_CUDNN})
+    ${LIBRARY_BLAS} ${LIBRARY_CUDA} ${LIBRARY_DNNL} ${LIBRARY_CUDNN})
 target_compile_definitions(spyker PUBLIC
     ${DEFINE_BLAS} ${DEFINE_CUDA} ${DEFINE_DNNL} ${DEFINE_CUDNN})
 target_compile_options(spyker PUBLIC

@@ -266,7 +266,9 @@ PYBIND11_MODULE(spyker_plugin, m)
         .def("_forward", [](LoG &layer, Tensor input, Tensor output) { layer(input, output); });
 
     py::class_<FC>(m, "FC")
-        .def(py::init<Device, Size, Size, F32, F32>())
+        .def(py::init([](Device _1, Size _2, Size _3, F32 _4, F32 _5, std::string _6) {
+            return new FC(_1, _2, _3, _4, _5, str2type(_6));
+        }))
         .def_readwrite("kernel", &FC::kernel)
         .def_readwrite("stdpconfig", &FC::stdpconfig)
         .def_readwrite("bpconfig", &FC::bpconfig)
@@ -278,7 +280,9 @@ PYBIND11_MODULE(spyker_plugin, m)
         });
 
     py::class_<Conv>(m, "Conv")
-        .def(py::init<Device, Size, Size, Shape, Shape, Shape, F32, F32>())
+        .def(py::init([](Device _1, Size _2, Size _3, Shape _4, Shape _5, Shape _6, F32 _7, F32 _8, std::string _9) {
+            return Conv(_1, _2, _3, _4, _5, _6, _7, _8, str2type(_9));
+        }))
         .def_readwrite("kernel", &Conv::kernel)
         .def_readwrite("stdpconfig", &Conv::stdpconfig)
         .def("_forward", [](Conv &layer, Tensor input, Tensor output) { layer(input, output); })

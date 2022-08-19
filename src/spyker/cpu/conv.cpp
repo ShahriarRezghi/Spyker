@@ -18,18 +18,23 @@ struct Conv
     Len4 _output;
     Len2 _stride;
     Len4 _pad;
+    Type _type;
 
-    Conv(Len4 _input, Len4 _kernel, Len4 _output, Len2 _stride, Len4 _pad)
-        : _input(_input), _kernel(_kernel), _output(_output), _stride(_stride), _pad(_pad)
+    dnnl::memory::data_type cvt(Type type)
+    {
+        if (type == Type::F16) return dnnl::memory::data_type::f16;
+        if (type == Type::F32) return dnnl::memory::data_type::f32;
+        SpykerAssert(false, "CPU::Conv", "Data type is not supported in DNNL.");
+    }
+    Conv(Len4 _input, Len4 _kernel, Len4 _output, Len2 _stride, Len4 _pad, Type _type)
+        : _input(_input), _kernel(_kernel), _output(_output), _stride(_stride), _pad(_pad), _type(_type)
     {
         if (!onednn_static) onednn_static = std::unique_ptr<onednn>(new onednn);
 
-        input = dnnl::memory::desc({_input.t, _input.z, _input.y, _input.x},  //
-                                   dnnl::memory::data_type::f32, dnnl::memory::format_tag::nchw);
-        kernel = dnnl::memory::desc({_kernel.t, _kernel.z, _kernel.y, _kernel.x},  //
-                                    dnnl::memory::data_type::f32, dnnl::memory::format_tag::nchw);
-        output = dnnl::memory::desc({_output.t, _output.z, _output.y, _output.x},  //
-                                    dnnl::memory::data_type::f32, dnnl::memory::format_tag::nchw);
+        auto type = cvt(_type);
+        input = dnnl::memory::desc({_input.t, _input.z, _input.y, _input.x}, type, dnnl::memory::format_tag::nchw);
+        kernel = dnnl::memory::desc({_kernel.t, _kernel.z, _kernel.y, _kernel.x}, type, dnnl::memory::format_tag::nchw);
+        output = dnnl::memory::desc({_output.t, _output.z, _output.y, _output.x}, type, dnnl::memory::format_tag::nchw);
 
         dnnl::convolution_forward::desc desc(dnnl::prop_kind::forward_inference,                 //
                                              dnnl::algorithm::convolution_auto,                  //
@@ -38,7 +43,8 @@ struct Conv
         dnnl::convolution_forward::primitive_desc prim(desc, onednn_static->engine);
         conv = dnnl::convolution_forward(prim);
     }
-    void operator()(F32 *input_, F32 *kernel_, F32 *output_)
+    template <typename T>
+    void operator()(T *input_, T *kernel_, T *output_)
     {
         dnnl::memory imem(input, onednn_static->engine, input_);
         dnnl::memory kmem(kernel, onednn_static->engine, kernel_);
@@ -46,9 +52,10 @@ struct Conv
         conv.execute(onednn_static->stream, {{DNNL_ARG_SRC, imem}, {DNNL_ARG_WEIGHTS, kmem}, {DNNL_ARG_DST, omem}});
         onednn_static->stream.wait();
     }
-    bool comp(Len4 input_, Len4 kernel_, Len4 output_, Len2 stride_, Len4 pad_)
+    bool comp(Len4 input_, Len4 kernel_, Len4 output_, Len2 stride_, Len4 pad_, Type type_)
     {
-        return _input == input_ && _kernel == kernel_ && _output == output_ && _stride == stride_ && _pad == pad_;
+        return _input == input_ && _kernel == kernel_ && _output == output_ &&  //
+               _stride == stride_ && _pad == pad_ && _type == type_;
     }
 };
 
@@ -56,18 +63,23 @@ std::vector<std::shared_ptr<Conv>> conv_handle;
 
 void conv_clear() { conv_handle.clear(); }
 
-Conv &conv_find(Len4 input, Len4 kernel, Len4 output, Len2 stride, Len4 pad)
+Conv &conv_find(Len4 input, Len4 kernel, Len4 output, Len2 stride, Len4 pad, Type type)
 {
     for (const auto &conv : conv_handle)
-        if (conv->comp(input, kernel, output, stride, pad)) return *conv.get();
-    conv_handle.push_back(std::shared_ptr<Conv>(new Conv(input, kernel, output, stride, pad)));
+        if (conv->comp(input, kernel, output, stride, pad, type)) return *conv.get();
+    conv_handle.push_back(std::shared_ptr<Conv>(new Conv(input, kernel, output, stride, pad, type)));
     return *conv_handle.back().get();
 }
 
-void conv(Vec4<F32> input, Vec4<F32> kernel, Vec4<F32> output, Len2 stride, Len4 pad)
+template <typename T>
+void _conv(Vec4<T> input, Vec4<T> kernel, Vec4<T> output, Len2 stride, Len4 pad)
 {
-    Conv &conv = conv_find(input.len(), kernel.len(), output.len(), stride, pad);
+    Conv &conv = conv_find(input.len(), kernel.len(), output.len(), stride, pad, TypeName<T>());
     conv(input.data, kernel.data, output.data);
+}
+void _conv(Vec4<F64> input, Vec4<F64> kernel, Vec4<F64> output, Len2 stride, Len4 pad)
+{
+    SpykerAssert(false, "CPU::Conv", "F64 is not supported with DNNL.");
 }
 
 #elif defined(HEAVY_USE_BLAS)
@@ -168,26 +180,32 @@ void conv2(Vec3<T> input_, Vec4<T> kernel, Vec3<T> output, Len2 stride)
     deinit(input);
 }
 
-void conv(Vec4<F32> input_, Vec4<F32> kernel, Vec4<F32> output, Len2 stride, Len4 pad)
+template <typename T>
+void _conv(Vec4<T> input_, Vec4<T> kernel, Vec4<T> output, Len2 stride, Len4 pad)
 {
     // TODO test
     auto input = input_;
     if (pad.t != 0 || pad.z != 0 || pad.y != 0 || pad.x != 0)
     {
-        input = init<F32>(input.t, input.z, input.y + pad.t + pad.y, input.x + pad.z + pad.x);
-        cpu_pad(todyn(Vec3<F32>(input_.data, input_.t * input_.z, input_.y, input_.x)),
-                todyn(Vec3<F32>(input.data, input.t * input.z, input.y, input.x)), pad, F32(0));
+        input = init<T>(input.t, input.z, input.y + pad.t + pad.y, input.x + pad.z + pad.x);
+        cpu_pad(todyn(Vec3<T>(input_.data, input_.t * input_.z, input_.y, input_.x)),
+                todyn(Vec3<T>(input.data, input.t * input.z, input.y, input.x)), pad, T(0));
     }
 
     for (Size i = 0; i < input.t; ++i) conv2(input(i), kernel, output(i), stride);
     if (input.data != input_.data) deinit(input);
+}
+void _conv(Vec4<F16> input_, Vec4<F16> kernel, Vec4<F16> output, Len2 stride, Len4 pad)
+{
+    SpykerAssert(false, "CPU::Conv", "F16 is not supported with BLAS.");
 }
 
 void conv_clear() {}
 
 #else
 
-void conv(Vec4<F32> input_, Vec4<F32> kernel, Vec4<F32> output, Len2 stride, Len4 pad)
+template <typename T>
+void _conv(Vec4<T> input_, Vec4<T> kernel, Vec4<T> output, Len2 stride, Len4 pad)
 {
     SpykerCompare(false, ==, true, "CPU::Conv", "BLAS and LAPACK are not enabled in this build.");
 }
@@ -196,18 +214,15 @@ void conv_clear() {}
 #endif
 
 template <typename T>
-void conv(Vec4<T> input, Vec4<F32> kernel, Vec4<F32> output, Len2 stride, Len4 pad)
+void conv(Vec4<T> input, Vec4<T> kernel, Vec4<T> output, Len2 stride, Len4 pad)
 {
-    auto temp = init<F32>(input.t, input.z, input.y, input.x);
-    copy(input, temp);
-    conv(temp, kernel, output, stride, pad);
-    deinit(temp);
+    _conv(input, kernel, output, stride, pad);
 }
 }  // namespace CPU
 
 void cpu_conv(Dyn4 input, Dyn4 kernel, Dyn4 output, Len2 stride, Len4 pad)
 {
-    IfType(T, input.type, CPU::conv<T>(input, kernel, output, stride, pad));
+    IfReal(T, kernel.type, CPU::conv<T>(input, kernel, output, stride, pad));
 }
 void cpu_conv_clear() { CPU::conv_clear(); }
 }  // namespace Core

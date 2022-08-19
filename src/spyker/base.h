@@ -598,7 +598,8 @@ const static F16 HLF_MAX = std::numeric_limits<F16>::max();
         using name = F64;        \
         expr;                    \
     }                            \
-    SpykerAssert(false, "Core::Type", "Unknown type \"" << type << "\" given.")
+    else                         \
+        SpykerAssert(false, "Core::Type", "Unknown type \"" << type << "\" given.")
 
 #define IfInt(name, type, expr) \
     if (type == Type::I8)       \
@@ -641,7 +642,8 @@ const static F16 HLF_MAX = std::numeric_limits<F16>::max();
         using name = U64;       \
         expr;                   \
     }                           \
-    SpykerAssert(false, "Core::Type", "Unknown type \"" << type << "\" given.")
+    else                        \
+        SpykerAssert(false, "Core::Type", "Unknown type \"" << type << "\" given.")
 
 #define IfNotHalf(name, type, expr) \
     if (type == Type::I8)           \

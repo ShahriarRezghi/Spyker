@@ -35,4 +35,3 @@
 #include <spyker/helper/csv.h>
 #include <spyker/helper/image.h>
 #include <spyker/helper/mnist.h>
-#include <spyker/helper/serial.h>

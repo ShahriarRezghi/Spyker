@@ -154,6 +154,10 @@ def wrap_array(input):
     return wrap(input)
 
 
+def copy_array(input, output):
+    wrap(input, False).to(wrap(output, True))
+
+
 def _to_tensor(input, pinned=False, unified=False):
     """
     Create Spyker Tensor from PyTorch tensor or Numpy array.

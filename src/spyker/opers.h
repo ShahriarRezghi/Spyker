@@ -379,7 +379,8 @@ public:
     /// @param pad padding size of the convolution (default 0).
     /// @param mean mean of the random normal variable that initializes the kernel (default 0.5).
     /// @param std standard deviation of the random normal variable that initializes the kernel (default 0.02).
-    Conv(Size input, Size output, Expand2 kernel, Expand2 stride = 1, Expand4 pad = 0, F32 mean = .5, F32 std = .02);
+    Conv(Size input, Size output, Expand2 kernel, Expand2 stride = 1, Expand4 pad = 0, F32 mean = .5, F32 std = .02,
+         Type type = Type::F32);
 
     /// @param device device of the module to be run on.
     /// @param input channels of the input signal.
@@ -390,7 +391,7 @@ public:
     /// @param mean mean of the random normal variable that initializes the kernel (default 0.5).
     /// @param std standard deviation of the random normal variable that initializes the kernel (default 0.02).
     Conv(Device device, Size input, Size output, Expand2 kernel, Expand2 stride = 1, Expand4 pad = 0, F32 mean = .5,
-         F32 std = .02);
+         F32 std = .02, Type type = Type::F32);
 
     /// Apply the convolution on the input.
     ///
@@ -455,14 +456,14 @@ public:
     /// @param output dimensions of the output signal.
     /// @param mean mean of the random normal variable that initializes the kernel (default 0.5).
     /// @param std standard deviation of the random normal variable that initializes the kernel (default 0.02).
-    FC(Size input, Size output, F32 mean = .5, F32 std = .02);
+    FC(Size input, Size output, F32 mean = .5, F32 std = .02, Type type = Type::F32);
 
     /// @param device device of the module to be run on.
     /// @param input dimensions of the input signal.
     /// @param output dimensions of the output signal.
     /// @param mean mean of the random normal variable that initializes the kernel (default 0.5).
     /// @param std standard deviation of the random normal variable that initializes the kernel (default 0.02).
-    FC(Device device, Size input, Size output, F32 mean = .5, F32 std = .02);
+    FC(Device device, Size input, Size output, F32 mean = .5, F32 std = .02, Type type = Type::F32);
 
     /// Apply the fully connected on the input.
     ///

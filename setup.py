@@ -51,6 +51,8 @@ class CMakeBuild(build_ext):
 
         if 'ENABLE_NINJA' in env and IsTrue(env['ENABLE_NINJA']):
             cmake_args.append('-GNinja')
+        if 'CCACHE_EXEC' in env:
+            cmake_args.append('-DCMAKE_CXX_COMPILER_LAUNCHER=' + env['CCACHE_EXEC'])
         if 'CMAKE_ARGS' in env:
             cmake_args.extend(env['CMAKE_ARGS'].split())
         if 'OPTIM_FLAGS' in env:

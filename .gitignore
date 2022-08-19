@@ -54,5 +54,8 @@ compile_commands.json
 # Other
 setup.cfg
 /docs/build/
-/dist/
+dist/
+old/
+build/
+*.egg-info/
 __pycache__/

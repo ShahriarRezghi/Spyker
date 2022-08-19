@@ -146,11 +146,15 @@ void poisson(ARG1(U16, input), ARG1(U16, times), ARG1(U16, values), ARG2(T, outp
 {
     VEC1(U16, input) VEC1(U16, times) VEC1(U16, values) VEC2(T, output);
 
+    fill(values, U16(0));
+
+    for (Size j = 0; j < output.x; ++j)  //
+        times(j) = draw(input(j), random, pois);
+
     for (Size i = 0; i < output.y; ++i)
     {
         for (Size j = 0; j < output.x; ++j)
             if (times(j) == i) values(j) += 1, times(j) += draw(input(j), random, pois);
-
         copy(values, output(i));
     }
 }
@@ -168,8 +172,6 @@ void poisson(Vec2<I> input, Vec3<O> output)
     for (Size i = 0; i < input.y; ++i)
     {
         Random random(rnd + i);
-        fill(values(i), U16(0));
-        copy(input(i), times(i));
         latency(ARG(input(i)), ARG(temp(i)), output.y);
         poisson(ARG(temp(i)), ARG(times(i)), ARG(values(i)), ARG(output(i)), random, pois);
     }
@@ -190,8 +192,6 @@ void poissort(Vec2<I> input, Vec3<O> output)
     for (Size i = 0; i < input.y; ++i)
     {
         Random random(rnd + i);
-        fill(values(i), U16(0));
-        copy(input(i), times(i));
         sorted(ARG(input(i)), ARG(index(i)), ARG(temp(i)), output.y);
         poisson(ARG(temp(i)), ARG(times(i)), ARG(values(i)), ARG(output(i)), random, pois);
     }

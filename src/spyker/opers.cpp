@@ -369,13 +369,12 @@ Tensor conv(Tensor input, Tensor kernel, Expand2 stride, Expand4 pad)
 
 Tensor conv(Tensor input, Tensor kernel, Tensor output, Expand2 stride, Expand4 pad)
 {
-    input = to5(input), output = to5(output);
+    input = to5(input).to(kernel.type()), output = to5(output);
     check("Stride", stride, {1, 1}), check("Pad", pad, {0, 0, 0, 0});
 
     bool compat = Core::compatible({input.device(), kernel.device(), output.device()});
     SpykerAssert(compat, "Interface::Cond", "Tensor devices are not compatible.");
-    SpykerCompare(kernel.type(), ==, Type::F32, "Interface::Conv", "Kernel data type must be F32.");
-    SpykerCompare(output.type(), ==, Type::F32, "Interface::Conv", "Output data type must be F32.");
+    SpykerCompare(kernel.type(), ==, output.type(), "Interface::Conv", "Kernel and output must have the same type.");
     SpykerCompare(output.shape(), ==, convShape(input.shape(), kernel.shape(), stride, pad), "Interface::Conv",
                   "Tensor shapes are not compatible.");
 
@@ -388,18 +387,17 @@ Tensor conv(Tensor input, Tensor kernel, Tensor output, Expand2 stride, Expand4 
 Tensor fc(Tensor input, Tensor kernel, bool sign)
 {
     input = to3(input);
-    Tensor output(input.device(), Type::F32, fcShape(input.shape(), kernel.shape()));
+    Tensor output(input.device(), kernel.type(), fcShape(input.shape(), kernel.shape()));
     return fc(input, kernel, output, sign);
 }
 
 Tensor fc(Tensor input, Tensor kernel, Tensor output, bool sign)
 {
-    input = to3(input), output = to3(output);
+    input = to3(input).to(kernel.type()), output = to3(output);
 
     bool compat = Core::compatible({input.device(), kernel.device(), output.device()});
     SpykerAssert(compat, "Interface::FC", "Tensor devices are not compatible.");
-    SpykerCompare(kernel.type(), ==, Type::F32, "Interface::FC", "Kernel data type must be F32.");
-    SpykerCompare(output.type(), ==, Type::F32, "Interface::FC", "Output data type must be F32.");
+    SpykerCompare(kernel.type(), ==, output.type(), "Interface::FC", "Kernel and output must have the same type.");
     SpykerCompare(output.shape(), ==, fcShape(input.shape(), kernel.shape()), "Interface::FC",
                   "Tensor shapes are not compatible.");
 
@@ -769,6 +767,7 @@ ZCA &ZCA::fit(Tensor input, Scalar epsilon, bool transform)
     input = input.reshape({input.shape(0), -1});
     mean = Tensor(Type::F32, {input.shape(1)});
     this->transform = Tensor(Type::F32, {input.shape(1), input.shape(1)});
+    print(mean.shape(), this->transform.shape(), Shape{input.shape(1), input.shape(1)});
     zcaFit(input, mean, this->transform, epsilon, transform);
     return *this;
 }
@@ -789,19 +788,20 @@ Tensor ZCA::split(Tensor input, Tensor output)
 
 Tensor ZCA::split(Tensor input) { return zcaSplit(input); }
 
-Conv::Conv(Size input, Size output, Expand2 kernel, Expand2 stride, Expand4 pad, F32 mean, F32 std)
-    : Conv(Kind::CPU, input, output, kernel, stride, pad, mean, std)
+Conv::Conv(Size input, Size output, Expand2 kernel, Expand2 stride, Expand4 pad, F32 mean, F32 std, Type type)
+    : Conv(Kind::CPU, input, output, kernel, stride, pad, mean, std, type)
 {
 }
 
-Conv::Conv(Device device, Size input, Size output, Expand2 _kernel, Expand2 stride, Expand4 pad, F32 mean, F32 std)
+Conv::Conv(Device device, Size input, Size output, Expand2 _kernel, Expand2 stride, Expand4 pad, F32 mean, F32 std,
+           Type type)
     : _init(true), _device(device), _stride(stride), _pad(pad)
 {
     SpykerCompare(input, >, 0, "Interface::Conv", "Input size can't be less than 1.");
     SpykerCompare(output, >, 0, "Interface::Conv", "Output size can't be less than 1.");
     check("Kernel", _kernel, {1, 1}), check("Stride", _stride, {1, 1}), check("Pad", _pad, {0, 0, 0, 0});
 
-    kernel = Tensor(Type::F32, {output, input, _kernel[0], _kernel[1]});
+    kernel = Tensor(Type::F32, {output, input, _kernel[0], _kernel[1]}).to(type);
     normalKernel(kernel, mean, std);
     kernel = kernel.to(_device);
 }
@@ -846,14 +846,14 @@ void Conv::stdp(SparseTensor input, const Winners &winners)
     Core::sparse_stdp(*(Sparse5 *)input.data(), kernel, stdpconfig, winners, _pad.get());
 }
 
-FC::FC(Size input, Size output, F32 mean, F32 std) : FC(Kind::CPU, input, output, mean, std) {}
+FC::FC(Size input, Size output, F32 mean, F32 std, Type type) : FC(Kind::CPU, input, output, mean, std, type) {}
 
-FC::FC(Device device, Size input, Size output, F32 mean, F32 std) : _init(true), _device(device)
+FC::FC(Device device, Size input, Size output, F32 mean, F32 std, Type type) : _init(true), _device(device)
 {
     SpykerCompare(input, >, 0, "Interface::FC", "Input size can't be less than 1.");
     SpykerCompare(output, >, 0, "Interface::FC", "Output size can't be less than 1.");
 
-    kernel = Tensor(Type::F32, {output, input});
+    kernel = Tensor(Type::F32, {output, input}).to(type);
     normalKernel(kernel, mean, std);
     kernel = kernel.to(_device);
 }

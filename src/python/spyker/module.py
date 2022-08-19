@@ -170,7 +170,7 @@ class ZCA(impl.ZCA):
         """
 
         if not inplace: input = [copy(x) for x in input]
-        [self._forward(x) for x in input]
+        [self._forward(wrap(x)) for x in input]
         return tuple(input) if len(input) > 1 else input[0]
 
     @staticmethod
@@ -255,7 +255,6 @@ class DoG(impl.DoG):
 
         pad = expand4(pad)
         if isinstance(filter, DoGFilter): filter = [filter]
-        filter = [x.get() for x in filter]
         super().__init__(device, size, filter, pad)
         self.device = device
         self.pad = pad
@@ -313,7 +312,6 @@ class Gabor(impl.Gabor):
 
         pad = expand4(pad)
         if isinstance(filter, GaborFilter): filter = [filter]
-        filter = [x.get() for x in filter]
         super().__init__(device, size, filter, pad)
         self.device = device
         self.pad = pad
@@ -415,7 +413,7 @@ class FC(impl.FC):
         Apply the STDP on the fully connected
     """
 
-    def __init__(self, input, output, mean=.5, std=.02, device=impl.device('cpu')):
+    def __init__(self, input, output, mean=.5, std=.02, device=impl.device('cpu'), dtype='f32'):
         """
         Parameters
         ----------
@@ -429,8 +427,9 @@ class FC(impl.FC):
             Standard deviation of the random normal variable that initializes the kernel (default 0.02)
         """
 
-        super().__init__(device, input, output, mean, std)
+        super().__init__(device, input, output, mean, std, dtype)
         self.device = device
+        self.dtype = dtype
     
     def __call__(self, input, sign=False):
         """
@@ -449,7 +448,7 @@ class FC(impl.FC):
 
         input_ = to3(wrap(input))
         shape = impl.shape.fc(input_.shape, self.kernel.shape)
-        output = create(input, 'f32', shape)
+        output = create(input, self.dtype, shape)
         self._forward(input_, wrap(output), sign)
         return output
 
@@ -493,7 +492,7 @@ class Conv(impl.Conv):
         Apply the convolution on the input
     """
 
-    def __init__(self, input, output, kernel, stride=1, pad=0, mean=.5, std=.02, device=impl.device('cpu')):
+    def __init__(self, input, output, kernel, stride=1, pad=0, mean=.5, std=.02, device=impl.device('cpu'), dtype='f32'):
         """
         Parameters
         ----------
@@ -519,10 +518,11 @@ class Conv(impl.Conv):
         stride = expand2(stride)
         pad = expand4(pad)
 
-        super().__init__(device, input, output, kernel, stride, pad, mean, std)
+        super().__init__(device, input, output, kernel, stride, pad, mean, std, dtype)
         self.device = device
         self.stride = stride
         self.pad = pad
+        self.dtype = dtype
 
     def __call__(self, input, threshold=None):
         """
@@ -544,7 +544,7 @@ class Conv(impl.Conv):
 
         input_ = to5(wrap(input))
         shape = impl.shape.conv(input_.shape, self.kernel.shape, self.stride, self.pad)
-        output = create(input, 'f32', shape)
+        output = create(input, self.dtype, shape)
         self._forward(input_, wrap(output))
         return output
 
