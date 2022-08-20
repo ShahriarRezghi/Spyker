@@ -53,8 +53,8 @@ __global__ void zca_split(Cize size, PTR(T, input), PTR(T, output))
     Cize i = Index1;
     if (size <= i) return;
 
-    od1[i] = max(T(input[i]), T(0));
-    od2[i] = max(T(-input[i]), T(0));
+    od1[i] = cmax(T(input[i]), T(0));
+    od2[i] = cmax(T(-input[i]), T(0));
 }
 
 template <typename T>

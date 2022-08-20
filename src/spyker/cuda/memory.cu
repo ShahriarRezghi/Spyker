@@ -267,7 +267,7 @@ template <typename T1, typename T2>
 __global__ void cast_kernel(Cize size, PTR(T1, input), PTR(T2, output))
 {
     Cize idx = Index1D(T2), end = min(size, idx + Block1D(T2));
-    for (Cize i = idx; i < end; i += Thread1D) cast(input[i], output[i]);
+    for (Cize i = idx; i < end; i += Thread1D) output[i] = input[i];
 }
 
 template <typename T1, typename T2>

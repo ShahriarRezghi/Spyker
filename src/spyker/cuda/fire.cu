@@ -60,7 +60,7 @@ __global__ void rate_fire(Cize Y, Cize X, PTR(I, input), PTR(O, output), I thres
     for (Cize i = 0; i < Y; ++i)
     {
         if (value + threshold < input[i * X + j])  //
-            ++spike, value = input[i * X + j];
+            spike += 1, value = input[i * X + j];
         output[i * X + j] = spike;
     }
 }

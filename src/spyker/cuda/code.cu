@@ -158,7 +158,8 @@ __global__ void poisson(Cize Y, Cize X, PTR(U16, input), PTR(T, output), PTR(Sta
     if (X <= j) return;
 
     State state = rand[j];
-    U16 value = 0, time = input[j], *dd = data + time * BINS;
+    U16 value = 0, *dd = data + input[j] * BINS;
+    U16 time = dd[curand(&state) & (BINS - 1)];
     for (Cize i = 0; i < Y; ++i)
     {
         if (time == i) value += 1, time += dd[curand(&state) & (BINS - 1)];

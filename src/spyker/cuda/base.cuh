@@ -48,7 +48,12 @@
 #undef IfReal
 
 #define IfReal(name, type, expr) \
-    if (type == Type::F32)       \
+    if (type == Type::F16)       \
+    {                            \
+        using name = C16;        \
+        expr;                    \
+    }                            \
+    else if (type == Type::F32)  \
     {                            \
         using name = F32;        \
         expr;                    \
@@ -58,11 +63,69 @@
         using name = F64;        \
         expr;                    \
     }                            \
-    SpykerAssert(false, "Core::Type", "Unknown type \"" << type << "\" given.")
+    else                         \
+        SpykerAssert(false, "Core::Type", "Unknown type \"" << type << "\" given.")
 
 #undef IfType
 
-#define IfType IfNotHalf
+#define IfType(name, type, expr) \
+    if (type == Type::I8)        \
+    {                            \
+        using name = I8;         \
+        expr;                    \
+    }                            \
+    else if (type == Type::I16)  \
+    {                            \
+        using name = I16;        \
+        expr;                    \
+    }                            \
+    else if (type == Type::I32)  \
+    {                            \
+        using name = I32;        \
+        expr;                    \
+    }                            \
+    else if (type == Type::I64)  \
+    {                            \
+        using name = I64;        \
+        expr;                    \
+    }                            \
+    else if (type == Type::U8)   \
+    {                            \
+        using name = U8;         \
+        expr;                    \
+    }                            \
+    else if (type == Type::U16)  \
+    {                            \
+        using name = U16;        \
+        expr;                    \
+    }                            \
+    else if (type == Type::U32)  \
+    {                            \
+        using name = U32;        \
+        expr;                    \
+    }                            \
+    else if (type == Type::U64)  \
+    {                            \
+        using name = U64;        \
+        expr;                    \
+    }                            \
+    else if (type == Type::F16)  \
+    {                            \
+        using name = C16;        \
+        expr;                    \
+    }                            \
+    else if (type == Type::F32)  \
+    {                            \
+        using name = F32;        \
+        expr;                    \
+    }                            \
+    else if (type == Type::F64)  \
+    {                            \
+        using name = F64;        \
+        expr;                    \
+    }                            \
+    else                         \
+        SpykerAssert(false, "Core::Type", "Unknown type \"" << type << "\" given.")
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -116,19 +179,180 @@
 
 #define Config1D(type, z, y, x) config1d<type>(z, y, x), Thread1D
 
-#define LimitsLine(type, minim, maxim)                                \
-    template <>                                                       \
-    struct Limits<type>                                               \
-    {                                                                 \
-        __device__ __host__ static type min() { return type(minim); } \
-        __device__ __host__ static type max() { return type(maxim); } \
+#define LimitsLine(type, minim, maxim)                                       \
+    template <>                                                              \
+    struct Limits<type>                                                      \
+    {                                                                        \
+        inline __device__ __host__ static type min() { return type(minim); } \
+        inline __device__ __host__ static type max() { return type(maxim); } \
     };
 
 namespace Spyker
 {
-using C16 = __half;
+struct C16
+{
+    __half data;
+
+    inline __device__ C16() {}
+    inline __device__ C16(__half value) : data(value) {}
+    inline __host__ C16(Scalar value) : data(F32(value)) {}
+
+    template <typename T>
+    inline __device__ C16(T value)
+    {
+        data = F32(value);
+    }
+    template <typename T>
+    inline __device__ C16 &operator=(T value)
+    {
+        data = F32(value);
+        return *this;
+    }
+    template <typename T>
+    inline __device__ operator T() const
+    {
+        return F32(data);
+    }
+
+    inline __device__ bool operator<(C16 value) const
+    {
+#if __CUDA_ARCH__ >= 530
+        return data < value.data;
+#else
+        return F32(data) < F32(value.data);
+#endif
+    }
+    inline __device__ bool operator<=(C16 value) const
+    {
+#if __CUDA_ARCH__ >= 530
+        return data <= value.data;
+#else
+        return F32(data) <= F32(value.data);
+#endif
+    }
+    inline __device__ bool operator>(C16 value) const
+    {
+#if __CUDA_ARCH__ >= 530
+        return data > value.data;
+#else
+        return F32(data) > F32(value.data);
+#endif
+    }
+    inline __device__ bool operator>=(C16 value) const
+    {
+#if __CUDA_ARCH__ >= 530
+        return data >= value.data;
+#else
+        return F32(data) >= F32(value.data);
+#endif
+    }
+
+    inline __device__ C16 operator+(C16 value) const
+    {
+#if __CUDA_ARCH__ >= 530
+        return data + value.data;
+#else
+        return F32(data) + F32(value.data);
+#endif
+    }
+    inline __device__ C16 operator-(C16 value) const
+    {
+#if __CUDA_ARCH__ >= 530
+        return data - value.data;
+#else
+        return F32(data) - F32(value.data);
+#endif
+    }
+    inline __device__ C16 operator*(C16 value) const
+    {
+#if __CUDA_ARCH__ >= 530
+        return data * value.data;
+#else
+        return F32(data) * F32(value.data);
+#endif
+    }
+    inline __device__ C16 operator/(C16 value) const
+    {
+#if __CUDA_ARCH__ >= 530
+        return data / value.data;
+#else
+        return F32(data) / F32(value.data);
+#endif
+    }
+
+    inline __device__ C16 &operator+=(C16 value)
+    {
+#if __CUDA_ARCH__ >= 530
+        data += value.data;
+#else
+        data = F32(data) + F32(value.data);
+#endif
+        return *this;
+    }
+    inline __device__ C16 &operator-=(C16 value)
+    {
+#if __CUDA_ARCH__ >= 530
+        data -= value.data;
+#else
+        data = F32(data) - F32(value.data);
+#endif
+        return *this;
+    }
+    inline __device__ C16 &operator*=(C16 value)
+    {
+#if __CUDA_ARCH__ >= 530
+        data *= value.data;
+#else
+        data = F32(data) * F32(value.data);
+#endif
+        return *this;
+    }
+    inline __device__ C16 &operator/=(C16 value)
+    {
+#if __CUDA_ARCH__ >= 530
+        data /= value.data;
+#else
+        data = F32(data) / F32(value.data);
+#endif
+        return *this;
+    }
+
+    inline __device__ C16 operator-() const
+    {
+#if __CUDA_ARCH__ >= 530
+        return -data;
+#else
+        return -F32(data);
+#endif
+        return *this;
+    }
+};
+
+inline __device__ C16 cmax(C16 first, C16 second)
+{
+#if __CUDA_ARCH__ >= 700
+    return __hmax(first.data, second.data);
+#else
+    return max(F32(first), F32(second));
+#endif
+}
+inline __device__ C16 cmin(C16 first, C16 second)
+{
+#if __CUDA_ARCH__ >= 700
+    return __hmin(first.data, second.data);
+#else
+    return min(F32(first), F32(second));
+#endif
+}
 
 CreateLimits(LimitsLine);
+
+template <>
+struct Limits<C16>
+{
+    inline __device__ static C16 min() { return C16(-6.550400e+004); }
+    inline __device__ static C16 max() { return C16(6.550400e+004); }
+};
 
 template <>
 struct ToFloat<C16>
@@ -296,23 +520,6 @@ Vec1<U32> maxidx(Vec2<T> input, U32 *index, T *data)
     index = _maxidx(todyn(input), index, data);
     return Vec1<U32>(index, input.y);
 }
-
-template <typename T1, typename T2>
-inline __device__ void cast(T1 input, T2 &output)
-{
-    output = input;
-}
-template <typename T1>
-inline __device__ void cast(T1 input, C16 &output)
-{
-    output = F32(input);
-}
-template <typename T2>
-inline __device__ void cast(C16 input, T2 &output)
-{
-    output = F32(input);
-}
-inline __device__ void cast(C16 input, C16 &output) { output = input; }
 
 void sync();
 

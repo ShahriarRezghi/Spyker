@@ -27,11 +27,11 @@ __global__ void select(Cize Y, Cize X, PTR(T, id), PTR(T, od), PTR(T, max), T th
     if (X <= j) return;
 
     T value = Limits<T>::min();
-    T maximum = max[blockIdx.y] * 2;
+    T maximum = max[blockIdx.y] * T(2);
     for (Cize i = Y - 1; i >= 0; --i)
     {
         Cize idx = i * X + j;
-        auto top = maximum * (Y - i - 1);
+        auto top = maximum * T(Y - i - 1);
         if (id[idx] > thresh) value = id[idx] + top;
     }
     od[j] = value;
@@ -42,7 +42,8 @@ struct Sum
 {
 };
 template <typename T>
-struct Sum<T, typename std::enable_if<std::is_floating_point<T>::value || std::is_same<T, F16>::value>::type>
+struct Sum<T, typename std::enable_if<std::is_floating_point<T>::value ||  //
+                                      std::is_same<T, F16>::value || std::is_same<T, C16>::value>::type>
 {
     using Type = T;
 

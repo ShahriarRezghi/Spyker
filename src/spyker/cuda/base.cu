@@ -54,13 +54,6 @@ std::unique_ptr<cudnn> cudnn_static;
 #endif
 
 template <typename T>
-__device__ T maxv(T first, T second)
-{
-    return max(first, second);
-}
-__device__ C16 maxv(C16 first, C16 second) { return C16(max(F32(first), F32(second))); }
-
-template <typename T>
 __global__ void maxval(Cize isize, Cize osize, PTR(T, input), PTR(T, output))
 {
     input += blockIdx.y * isize, output += blockIdx.y * osize;
@@ -68,12 +61,12 @@ __global__ void maxval(Cize isize, Cize osize, PTR(T, input), PTR(T, output))
     temp[threadIdx.x] = Limits<T>::min();
 
     Cize idx = Index1D(T), end = min(isize, idx + Block1D(T));
-    for (Cize i = idx; i < end; i += Thread1D) temp[threadIdx.x] = maxv(temp[threadIdx.x], input[i]);
+    for (Cize i = idx; i < end; i += Thread1D) temp[threadIdx.x] = cmax(temp[threadIdx.x], input[i]);
 
     for (Cize i = Thread1D / 2; i > 0; i >>= 1)
     {
         __syncthreads();
-        if (threadIdx.x < i) temp[threadIdx.x] = maxv(temp[threadIdx.x], temp[threadIdx.x + i]);
+        if (threadIdx.x < i) temp[threadIdx.x] = cmax(temp[threadIdx.x], temp[threadIdx.x + i]);
     }
     if (threadIdx.x == 0) output[blockIdx.x] = temp[0];
 }
@@ -92,13 +85,6 @@ Vec1<T> maxval_(Vec2<T> input, T *data)
 }
 
 template <typename T>
-__device__ T minv(T first, T second)
-{
-    return min(first, second);
-}
-__device__ C16 minv(C16 first, C16 second) { return C16(min(F32(first), F32(second))); }
-
-template <typename T>
 __global__ void minval(Cize isize, Cize osize, PTR(T, input), PTR(T, output))
 {
     input += blockIdx.y * isize, output += blockIdx.y * osize;
@@ -106,12 +92,12 @@ __global__ void minval(Cize isize, Cize osize, PTR(T, input), PTR(T, output))
     temp[threadIdx.x] = Limits<T>::max();
 
     Cize idx = Index1D(T), end = min(isize, idx + Block1D(T));
-    for (Cize i = idx; i < end; i += Thread1D) temp[threadIdx.x] = minv(temp[threadIdx.x], input[i]);
+    for (Cize i = idx; i < end; i += Thread1D) temp[threadIdx.x] = cmin(temp[threadIdx.x], input[i]);
 
     for (Cize i = Thread1D / 2; i > 0; i >>= 1)
     {
         __syncthreads();
-        if (threadIdx.x < i) temp[threadIdx.x] = minv(temp[threadIdx.x], temp[threadIdx.x + i]);
+        if (threadIdx.x < i) temp[threadIdx.x] = cmin(temp[threadIdx.x], temp[threadIdx.x + i]);
     }
     if (threadIdx.x == 0) output[blockIdx.x] = temp[0];
 }

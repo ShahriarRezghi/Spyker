@@ -182,7 +182,7 @@ void rank_convstdp(Vec5<T> input_, Vec4<F32> kernel, Vec5<T> output, const Confi
     {
         input = init<T>(input_.u, input_.t, input_.z, input_.y + pad.t + pad.y, input_.x + pad.z + pad.x);
         cuda_pad(todyn(Vec3<T>(input_.data, input_.u * input_.t * input_.z, input_.y, input_.x)),
-                 todyn(Vec3<T>(input.data, input.u * input.t * input.z, input.y, input.x)), pad, T(0));
+                 todyn(Vec3<T>(input.data, input.u * input.t * input.z, input.y, input.x)), pad, F64(0));
     }
     rank_convstdp(input, kernel, output, configs, winners, stride);
     if (input.data != input_.data) deinit(input);

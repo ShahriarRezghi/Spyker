@@ -48,7 +48,7 @@ __global__ void rank_inhibit(Cize Z, Cize Y, Cize X, PTR(T, input), PTR(U16, ind
     input += (blockIdx.z * Z + blockIdx.y) * Y * X, index += blockIdx.z * X;
     Cize j = Index1;
     if (X <= j) return;
-    for (U16 i = 0; i < Y; ++i) input[i * X + j] *= (index[j] == i);
+    for (U16 i = 0; i < Y; ++i) input[i * X + j] *= T(index[j] == i);
 }
 
 template <typename T>
