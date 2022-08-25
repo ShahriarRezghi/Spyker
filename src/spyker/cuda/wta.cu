@@ -117,7 +117,7 @@ void select(Vec4<T> temp, Vec1<Index> start, Len2 radius)
 }
 
 template <typename T>
-Winners select(Vec5<T> input, Len2 radius, Size count, F32 threshold)
+Winners select(Vec5<T> input, Len2 radius, Size count, T threshold)
 {
     using S = typename Sum<T>::Type;
 

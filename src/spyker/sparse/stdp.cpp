@@ -64,7 +64,7 @@ void stdp(ARG1(U16, direct), ARG1(F32, kernel), STDPConfig config)
     {
         F32 mult = (config.stabilize ? (kernel(i) - config.low) * (config.high - kernel(i)) : 1);
         kernel(i) += (direct(i) ? config.pos : config.neg) * mult;
-        kernel(i) = std::max(config.low, std::min(kernel(i), config.high));
+        kernel(i) = std::max(config.low, std::min(F64(kernel(i)), config.high));
     }
 }
 

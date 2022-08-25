@@ -509,17 +509,17 @@ struct SpykerExport STDPConfig
     /// Stabilization.
     bool stabilize;
     /// Positive learning rate.
-    F32 pos;
+    F64 pos;
     /// Negative learning rate.
-    F32 neg;
+    F64 neg;
     /// Lower bound of the weights.
-    F32 low;
+    F64 low;
     /// Upper bound of the weights.
-    F32 high;
+    F64 high;
 
     inline STDPConfig() {}
 
-    inline STDPConfig(F32 pos, F32 neg, bool stabilize = true, F32 low = 0, F32 high = 1)
+    inline STDPConfig(F64 pos, F64 neg, bool stabilize = true, F64 low = 0, F64 high = 1)
         : stabilize(stabilize), pos(pos), neg(neg), low(low), high(high)
     {
     }

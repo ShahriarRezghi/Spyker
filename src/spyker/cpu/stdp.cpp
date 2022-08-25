@@ -33,21 +33,23 @@ U16 rank_fcstdp(Vec2<T> output, Winner winner)
     return value;
 }
 
-void rank_fcstdp(ARG1(U16, isum), U16 osum, ARG1(F32, kernel), STDPConfig stdp)
+template <typename K>
+void rank_fcstdp(ARG1(U16, isum), U16 osum, ARG1(K, kernel), STDPConfig stdp)
 {
-    VEC1(U16, isum) VEC1(F32, kernel);
+    VEC1(U16, isum) VEC1(K, kernel);
 
-    F32 *kd = kernel.data;
+    K *kd = kernel.data;
     for (Size i = 0; i < kernel.x; ++i)
     {
-        F32 mult = (stdp.stabilize ? (kd[i] - stdp.low) * (stdp.high - kd[i]) : 1);
-        kd[i] += (isum(i) <= osum ? stdp.pos : stdp.neg) * mult;
-        kd[i] = std::max(stdp.low, std::min(kd[i], stdp.high));
+        F64 old = kd[i];
+        F64 value = (stdp.stabilize ? (old - stdp.low) * (stdp.high - old) : 1);
+        value = old + (isum(i) <= osum ? stdp.pos : stdp.neg) * value;
+        kd[i] = std::max(stdp.low, std::min(value, stdp.high));
     }
 }
 
-template <typename T>
-void rank_fcstdp(Vec3<T> input, Vec2<F32> kernel, Vec3<T> output, const Configs &configs, const Winners &winners)
+template <typename T, typename K>
+void rank_fcstdp(Vec3<T> input, Vec2<K> kernel, Vec3<T> output, const Configs &configs, const Winners &winners)
 {
     auto sum = init<U16>(input.x);
     for (Size i = 0; i < input.z; ++i)
@@ -86,24 +88,26 @@ U16 rank_convstdp(ARG4(T, input), ARG3(U16, isum), ARG4(T, output), Len2 stride,
     return od;
 }
 
-void rank_convstdp(ARG3(U16, sum), U16 osum, ARG3(F32, kernel), STDPConfig stdp)
+template <typename K>
+void rank_convstdp(ARG3(U16, sum), U16 osum, ARG3(K, kernel), STDPConfig stdp)
 {
-    VEC3(U16, sum) VEC3(F32, kernel);
+    VEC3(U16, sum) VEC3(K, kernel);
 
     U16 *isum = sum.data;
-    F32 *kd = kernel.data;
+    K *kd = kernel.data;
     Size size = kernel.size();
 
     for (Size i = 0; i < size; ++i)
     {
-        F32 mult = (stdp.stabilize ? (kd[i] - stdp.low) * (stdp.high - kd[i]) : 1);
-        kd[i] += (isum[i] <= osum ? stdp.pos : stdp.neg) * mult;
-        kd[i] = std::max(stdp.low, std::min(kd[i], stdp.high));
+        F64 old = kd[i];
+        F64 value = (stdp.stabilize ? (old - stdp.low) * (stdp.high - old) : 1);
+        value = old + (isum[i] <= osum ? stdp.pos : stdp.neg) * value;
+        kd[i] = std::max(stdp.low, std::min(value, stdp.high));
     }
 }
 
-template <typename T>
-void rank_convstdp(Vec5<T> input, Vec4<F32> kernel, Vec5<T> output, const Configs &configs, const Winners &winners,
+template <typename T, typename K>
+void rank_convstdp(Vec5<T> input, Vec4<K> kernel, Vec5<T> output, const Configs &configs, const Winners &winners,
                    Len2 stride)
 {
     auto sum = init<U16>(kernel.z, kernel.y, kernel.x);
@@ -119,8 +123,8 @@ void rank_convstdp(Vec5<T> input, Vec4<F32> kernel, Vec5<T> output, const Config
     deinit(sum);
 }
 
-template <typename T>
-void rank_convstdp(Vec5<T> input_, Vec4<F32> kernel, Vec5<T> output, const Configs &configs, const Winners &winners,
+template <typename T, typename K>
+void rank_convstdp(Vec5<T> input_, Vec4<K> kernel, Vec5<T> output, const Configs &configs, const Winners &winners,
                    Len2 stride, Len4 pad)
 {
     auto input = input_;
@@ -137,12 +141,13 @@ void rank_convstdp(Vec5<T> input_, Vec4<F32> kernel, Vec5<T> output, const Confi
 
 void cpu_rank_fcstdp(Dyn3 input, Dyn2 kernel, Dyn3 output, const Configs &configs, const Winners &winners)
 {
-    IfType(T, input.type, CPU::rank_fcstdp<T>(input, kernel, output, configs, winners));
+    IfType(T, input.type, IfReal(K, kernel.type, CPU::rank_fcstdp<T Comma K>(input, kernel, output, configs, winners)));
 }
 void cpu_rank_convstdp(Dyn5 input, Dyn4 kernel, Dyn5 output, const Configs &configs, const Winners &winners,
                        Len2 stride, Len4 pad)
 {
-    IfType(T, input.type, CPU::rank_convstdp<T>(input, kernel, output, configs, winners, stride, pad));
+    IfType(T, input.type,
+           IfReal(K, kernel.type, CPU::rank_convstdp<T Comma K>(input, kernel, output, configs, winners, stride, pad)));
 }
 }  // namespace Core
 }  // namespace Spyker

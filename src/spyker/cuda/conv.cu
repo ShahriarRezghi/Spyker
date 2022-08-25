@@ -106,7 +106,13 @@ struct Conv
     template <typename T>
     void operator()(T *input_, T *kernel_, T *output_)
     {
-        T alpha = 1, beta = 0;
+        F32 alpha = 1, beta = 0;
+        CudnnCheck(cudnnConvolutionForward(cudnn_static->handle, &alpha, input, input_, kernel, kernel_,  //
+                                           conv, algo, space.ptr, space.size, &beta, output, output_));
+    }
+    void operator()(F64 *input_, F64 *kernel_, F64 *output_)
+    {
+        F64 alpha = 1, beta = 0;
         CudnnCheck(cudnnConvolutionForward(cudnn_static->handle, &alpha, input, input_, kernel, kernel_,  //
                                            conv, algo, space.ptr, space.size, &beta, output, output_));
     }

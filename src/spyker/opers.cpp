@@ -203,12 +203,11 @@ Tensor canny(Tensor input, Tensor output, Scalar low, Scalar high)
 
 Tensor dog(Tensor input, Tensor kernel, Tensor output, Expand4 pad)
 {
-    input = to4(input), output = to4(output);
+    input = to4(input).to(kernel.type()), output = to4(output);
 
     bool compat = Core::compatible({input.device(), kernel.device(), output.device()});
     SpykerAssert(compat, "Interface::DoG", "Tensor devices are not compatible.");
-    SpykerCompare(kernel.type(), ==, Type::F32, "Interface::DoG", "Kernel data type must be F32.");
-    SpykerCompare(output.type(), ==, Type::F32, "Interface::DoG", "Output data type must be F32.");
+    SpykerCompare(kernel.type(), ==, output.type(), "Interface::DoG", "Kernel and output must have the same type.");
     SpykerCompare(output.shape(), ==, dogShape(input.shape(), kernel.shape(), pad), "Interface::DoG",
                   "Tensor shapes are not compatible.");
 
@@ -222,18 +221,17 @@ Tensor dog(Tensor input, Tensor kernel, Tensor output, Expand4 pad)
 Tensor dog(Tensor input, Tensor kernel, Expand4 pad)
 {
     input = to4(input);
-    Tensor output(input.device(), Type::F32, dogShape(input.shape(), kernel.shape(), pad));
+    Tensor output(input.device(), kernel.type(), dogShape(input.shape(), kernel.shape(), pad));
     return dog(input, kernel, output, pad);
 }
 
 Tensor gabor(Tensor input, Tensor kernel, Tensor output, Expand4 pad)
 {
-    input = to4(input), output = to4(output);
+    input = to4(input).to(kernel.type()), output = to4(output);
 
     bool compat = Core::compatible({input.device(), kernel.device(), output.device()});
     SpykerAssert(compat, "Interface::Gabor", "Tensor devices are not compatible.");
-    SpykerCompare(kernel.type(), ==, Type::F32, "Interface::Gabor", "Kernel data type must be F32.");
-    SpykerCompare(output.type(), ==, Type::F32, "Interface::Gabor", "Output data type must be F32.");
+    SpykerCompare(kernel.type(), ==, output.type(), "Interface::Gabor", "Kernel and output must have the same type.");
     SpykerCompare(output.shape(), ==, gaborShape(input.shape(), kernel.shape(), pad), "Interface::Gabor",
                   "Tensor shapes are not compatible.");
 
@@ -247,18 +245,17 @@ Tensor gabor(Tensor input, Tensor kernel, Tensor output, Expand4 pad)
 Tensor gabor(Tensor input, Tensor kernel, Expand4 pad)
 {
     input = to4(input);
-    Tensor output(input.device(), Type::F32, gaborShape(input.shape(), kernel.shape(), pad));
+    Tensor output(input.device(), kernel.type(), gaborShape(input.shape(), kernel.shape(), pad));
     return gabor(input, kernel, output, pad);
 }
 
 Tensor log(Tensor input, Tensor kernel, Tensor output, Expand4 pad)
 {
-    input = to4(input), output = to4(output);
+    input = to4(input).to(kernel.type()), output = to4(output);
 
     bool compat = Core::compatible({input.device(), kernel.device(), output.device()});
     SpykerAssert(compat, "Interface::LoG", "Tensor devices are not compatible.");
-    SpykerCompare(kernel.type(), ==, Type::F32, "Interface::LoG", "Kernel data type must be F32.");
-    SpykerCompare(output.type(), ==, Type::F32, "Interface::LoG", "Output data type must be F32.");
+    SpykerCompare(kernel.type(), ==, output.type(), "Interface::LoG", "Kernel and output must have the same type.");
     SpykerCompare(output.shape(), ==, logShape(input.shape(), kernel.shape(), pad), "Interface::LoG",
                   "Tensor shapes are not compatible.");
 
@@ -272,7 +269,7 @@ Tensor log(Tensor input, Tensor kernel, Tensor output, Expand4 pad)
 Tensor log(Tensor input, Tensor kernel, Expand4 pad)
 {
     input = to4(input);
-    Tensor output(input.device(), Type::F32, logShape(input.shape(), kernel.shape(), pad));
+    Tensor output(input.device(), kernel.type(), logShape(input.shape(), kernel.shape(), pad));
     return log(input, kernel, output, pad);
 }
 
@@ -330,32 +327,32 @@ Tensor zcaSplit(Tensor input)
     return zcaSplit(input, output);
 }
 
-void normalKernel(Tensor kernel, F32 mean, F32 std)
+void normalKernel(Tensor kernel, F64 mean, F64 std)
 {
     kernel = kernel.reshape({-1});
     SpykerCompare(kernel.device(), ==, Kind::CPU, "Interface::Conv", "Kernel must be on CPU.");
-    SpykerCompare(kernel.type(), ==, Type::F32, "Interface::Conv", "Kernel data type must be F32.");
+    SpykerCompare(kernel.type(), ==, Type::F64, "Interface::Conv", "Kernel data type must be F64.");
     Core::normal_kernel(Dyn1(kernel), mean, std);
 }
 
-void gaussianKernel(Tensor kernel, F32 std)
+void gaussianKernel(Tensor kernel, F64 std)
 {
     SpykerCompare(kernel.device(), ==, Kind::CPU, "Interface::DoG", "Kernel must be on CPU.");
-    SpykerCompare(kernel.type(), ==, Type::F32, "Interface::DoG", "Kernel data type must be F32.");
+    SpykerCompare(kernel.type(), ==, Type::F64, "Interface::DoG", "Kernel data type must be F64.");
     Core::gaussian_kernel(Dyn2(kernel), std);
 }
 
-void gaborKernel(Tensor kernel, F32 sigma, F32 theta, F32 gamma, F32 lambda, F32 psi)
+void gaborKernel(Tensor kernel, F64 sigma, F64 theta, F64 gamma, F64 lambda, F64 psi)
 {
     SpykerCompare(kernel.device(), ==, Kind::CPU, "Interface::Gabor", "Kernel must be on CPU.");
-    SpykerCompare(kernel.type(), ==, Type::F32, "Interface::Gabor", "Kernel data type must be F32.");
+    SpykerCompare(kernel.type(), ==, Type::F64, "Interface::Gabor", "Kernel data type must be F64.");
     Core::gabor_kernel(Dyn2(kernel), sigma, theta, gamma, lambda, psi);
 }
 
-void logKernel(Tensor kernel, F32 std)
+void logKernel(Tensor kernel, F64 std)
 {
     SpykerCompare(kernel.device(), ==, Kind::CPU, "Interface::LoG", "Kernel must be on CPU.");
-    SpykerCompare(kernel.type(), ==, Type::F32, "Interface::LoG", "Kernel data type must be F32.");
+    SpykerCompare(kernel.type(), ==, Type::F64, "Interface::LoG", "Kernel data type must be F64.");
     Core::log_kernel(Dyn2(kernel), std);
 }
 
@@ -363,7 +360,7 @@ Tensor conv(Tensor input, Tensor kernel, Expand2 stride, Expand4 pad)
 {
     input = to5(input);
     check("Stride", stride, {1, 1}), check("Pad", pad, {0, 0, 0, 0});
-    Tensor output(input.device(), Type::F32, convShape(input.shape(), kernel.shape(), stride, pad));
+    Tensor output(input.device(), kernel.type(), convShape(input.shape(), kernel.shape(), stride, pad));
     return conv(input, kernel, output, stride, pad);
 }
 
@@ -631,7 +628,6 @@ void rank_fcstdp(Tensor input, Tensor kernel, Tensor output, std::vector<STDPCon
     SpykerAssert(compat, "Interface::STDP", "Tensor devices are not compatible.");
     SpykerCompare(config.size(), >, 0, "Interface::STDP", "At least one STDP Config must be given.");
     SpykerCompare(winners.size(), >, 0, "Interface::STDP", "Winners can't be empty.");
-    SpykerCompare(kernel.type(), ==, Type::F32, "Interface::STDP", "Kernel data type must be F32.");
     SpykerCompare(input.type(), ==, output.type(), "Interface::STDP", "Input and output must have the same data type.");
     SpykerCompare(output.shape(), ==, fcShape(input.shape(), kernel.shape()), "Interface::STDP",
                   "Tensor shapes are not compatible.");
@@ -648,7 +644,6 @@ void rank_convstdp(Tensor input, Tensor kernel, Tensor output, const std::vector
     SpykerAssert(compat, "Interface::STDP", "Tensor devices are not compatible.");
     SpykerCompare(config.size(), >, 0, "Interface::STDP", "At least one STDP Config must be given.");
     SpykerCompare(winners.size(), >, 0, "Interface::STDP", "Winners can't be empty.");
-    SpykerCompare(kernel.type(), ==, Type::F32, "Interface::STDP", "Kernel data type must be F32.");
     SpykerCompare(input.type(), ==, output.type(), "Interface::STDP", "Input and output must have the same data type.");
     SpykerCompare(output.shape(), ==, convShape(input.shape(), kernel.shape(), stride, pad), "Interface::STDP",
                   "Tensor shapes are not compatible.");
@@ -658,9 +653,12 @@ void rank_convstdp(Tensor input, Tensor kernel, Tensor output, const std::vector
 
 INIT(DoG) INIT(Gabor) INIT(LoG) INIT(Conv) INIT(FC);
 
-DoG::DoG(Size size, const std::vector<DoGFilter> &filters, Expand4 pad) : DoG(Kind::CPU, size, filters, pad) {}
+DoG::DoG(Size size, const std::vector<DoGFilter> &filters, Expand4 pad, Type type)
+    : DoG(Kind::CPU, size, filters, pad, type)
+{
+}
 
-DoG::DoG(Device device, Size size, const std::vector<DoGFilter> &filters, Expand4 pad)
+DoG::DoG(Device device, Size size, const std::vector<DoGFilter> &filters, Expand4 pad, Type type)
     : _init(true), _device(device), _pad(pad)
 {
     SpykerCompare(size, >, 0, "Interface::DoG", "Input size can't be less than 1.");
@@ -668,13 +666,13 @@ DoG::DoG(Device device, Size size, const std::vector<DoGFilter> &filters, Expand
     check("Pad", _pad, {0, 0, 0, 0});
 
     auto count = Size(filters.size());
-    kernel = Tensor(Type::F32, {2, count, 2 * size + 1, 2 * size + 1});
+    kernel = Tensor(Type::F64, {2, count, 2 * size + 1, 2 * size + 1});
     for (Size i = 0; i < count; ++i)
     {
         gaussianKernel(kernel[0][i], filters[i].std1);
         gaussianKernel(kernel[1][i], filters[i].std2);
     }
-    kernel = kernel.to(_device);
+    kernel = kernel.to(type).to(_device);
 }
 
 Tensor DoG::operator()(Tensor input, Tensor output)
@@ -692,9 +690,12 @@ Tensor DoG::operator()(Tensor input)
     return dog(input, kernel, _pad);
 }
 
-Gabor::Gabor(Size size, const std::vector<GaborFilter> &filters, Expand4 pad) : Gabor(Kind::CPU, size, filters, pad) {}
+Gabor::Gabor(Size size, const std::vector<GaborFilter> &filters, Expand4 pad, Type type)
+    : Gabor(Kind::CPU, size, filters, pad, type)
+{
+}
 
-Gabor::Gabor(Device device, Size size, const std::vector<GaborFilter> &filters, Expand4 pad)
+Gabor::Gabor(Device device, Size size, const std::vector<GaborFilter> &filters, Expand4 pad, Type type)
     : _init(true), _device(device), _pad(pad)
 {
     SpykerCompare(size, >, 0, "Interface::Gabor", "Input size can't be less than 1.");
@@ -702,13 +703,13 @@ Gabor::Gabor(Device device, Size size, const std::vector<GaborFilter> &filters, 
     check("Pad", _pad, {0, 0, 0, 0});
 
     auto count = Size(filters.size());
-    kernel = Tensor(Type::F32, {count, 2 * size + 1, 2 * size + 1});
+    kernel = Tensor(Type::F64, {count, 2 * size + 1, 2 * size + 1});
     for (Size i = 0; i < count; ++i)
     {
         auto filter = filters[i];
         gaborKernel(kernel[i], filter.sigma, filter.theta, filter.gamma, filter.lambda, filter.psi);
     }
-    kernel = kernel.to(_device);
+    kernel = kernel.to(type).to(_device);
 }
 
 Tensor Gabor::operator()(Tensor input, Tensor output)
@@ -726,22 +727,23 @@ Tensor Gabor::operator()(Tensor input)
     return gabor(input, kernel, _pad);
 }
 
-LoG::LoG(Size size, const std::vector<F32> &stds, Expand4 pad) : LoG(Kind::CPU, size, stds, pad) {}
+LoG::LoG(Size size, const std::vector<F64> &stds, Expand4 pad, Type type) : LoG(Kind::CPU, size, stds, pad, type) {}
 
-LoG::LoG(Device device, Size size, const std::vector<F32> &stds, Expand4 pad) : _init(true), _device(device), _pad(pad)
+LoG::LoG(Device device, Size size, const std::vector<F64> &stds, Expand4 pad, Type type)
+    : _init(true), _device(device), _pad(pad)
 {
     SpykerCompare(size, >, 0, "Interface::LoG", "Input size can't be less than 1.");
     SpykerCompare(stds.size(), >, 0, "Interface::LoG", "Input stds count can't be less then 1.");
     check("Pad", _pad, {0, 0, 0, 0});
 
     auto count = Size(stds.size());
-    kernel = Tensor(Type::F32, {2, count, 2 * size + 1, 2 * size + 1});
+    kernel = Tensor(Type::F64, {2, count, 2 * size + 1, 2 * size + 1});
     for (Size i = 0; i < count; ++i)
     {
         gaussianKernel(kernel[0][i], stds[i] / std::sqrt(2));
         gaussianKernel(kernel[1][i], stds[i] * std::sqrt(2));
     }
-    kernel = kernel.to(_device);
+    kernel = kernel.to(type).to(_device);
 }
 
 Tensor LoG::operator()(Tensor input, Tensor output)
@@ -767,7 +769,6 @@ ZCA &ZCA::fit(Tensor input, Scalar epsilon, bool transform)
     input = input.reshape({input.shape(0), -1});
     mean = Tensor(Type::F32, {input.shape(1)});
     this->transform = Tensor(Type::F32, {input.shape(1), input.shape(1)});
-    print(mean.shape(), this->transform.shape(), Shape{input.shape(1), input.shape(1)});
     zcaFit(input, mean, this->transform, epsilon, transform);
     return *this;
 }
@@ -788,12 +789,12 @@ Tensor ZCA::split(Tensor input, Tensor output)
 
 Tensor ZCA::split(Tensor input) { return zcaSplit(input); }
 
-Conv::Conv(Size input, Size output, Expand2 kernel, Expand2 stride, Expand4 pad, F32 mean, F32 std, Type type)
+Conv::Conv(Size input, Size output, Expand2 kernel, Expand2 stride, Expand4 pad, F64 mean, F64 std, Type type)
     : Conv(Kind::CPU, input, output, kernel, stride, pad, mean, std, type)
 {
 }
 
-Conv::Conv(Device device, Size input, Size output, Expand2 _kernel, Expand2 stride, Expand4 pad, F32 mean, F32 std,
+Conv::Conv(Device device, Size input, Size output, Expand2 _kernel, Expand2 stride, Expand4 pad, F64 mean, F64 std,
            Type type)
     : _init(true), _device(device), _stride(stride), _pad(pad)
 {
@@ -801,9 +802,9 @@ Conv::Conv(Device device, Size input, Size output, Expand2 _kernel, Expand2 stri
     SpykerCompare(output, >, 0, "Interface::Conv", "Output size can't be less than 1.");
     check("Kernel", _kernel, {1, 1}), check("Stride", _stride, {1, 1}), check("Pad", _pad, {0, 0, 0, 0});
 
-    kernel = Tensor(Type::F32, {output, input, _kernel[0], _kernel[1]}).to(type);
+    kernel = Tensor(Type::F64, {output, input, _kernel[0], _kernel[1]});
     normalKernel(kernel, mean, std);
-    kernel = kernel.to(_device);
+    kernel = kernel.to(type).to(_device);
 }
 
 Tensor Conv::operator()(Tensor input, Tensor output)
@@ -846,16 +847,16 @@ void Conv::stdp(SparseTensor input, const Winners &winners)
     Core::sparse_stdp(*(Sparse5 *)input.data(), kernel, stdpconfig, winners, _pad.get());
 }
 
-FC::FC(Size input, Size output, F32 mean, F32 std, Type type) : FC(Kind::CPU, input, output, mean, std, type) {}
+FC::FC(Size input, Size output, F64 mean, F64 std, Type type) : FC(Kind::CPU, input, output, mean, std, type) {}
 
-FC::FC(Device device, Size input, Size output, F32 mean, F32 std, Type type) : _init(true), _device(device)
+FC::FC(Device device, Size input, Size output, F64 mean, F64 std, Type type) : _init(true), _device(device)
 {
     SpykerCompare(input, >, 0, "Interface::FC", "Input size can't be less than 1.");
     SpykerCompare(output, >, 0, "Interface::FC", "Output size can't be less than 1.");
 
-    kernel = Tensor(Type::F32, {output, input}).to(type);
+    kernel = Tensor(Type::F64, {output, input});
     normalKernel(kernel, mean, std);
-    kernel = kernel.to(_device);
+    kernel = kernel.to(type).to(_device);
 }
 
 Tensor FC::operator()(Tensor input, Tensor output, bool sign)

@@ -149,13 +149,13 @@ public:
 struct SpykerExport DoGFilter
 {
     /// Standard deviation of the first gaussian filter.
-    F32 std1;
+    F64 std1;
 
     /// Standard deviation of the second gaussian filter.
-    F32 std2;
+    F64 std2;
 
     /// Initialize Filter with parameters.
-    inline DoGFilter(F32 std1, F32 std2) : std1(std1), std2(std2) {}
+    inline DoGFilter(F64 std1, F64 std2) : std1(std1), std2(std2) {}
 };
 
 /// Gabor filter parameter container.
@@ -164,29 +164,29 @@ struct SpykerExport GaborFilter
     /// Standard deviation
     ///
     /// Width of the strips of the filter.
-    F32 sigma;
+    F64 sigma;
 
     /// Orientation
     ///
     /// Orientation of the filter (unit degrees).
-    F32 theta;
+    F64 theta;
 
     /// Spatial aspect ratio
     ///
     /// Height of the stripes, reverse relation.
-    F32 gamma;
+    F64 gamma;
 
     /// Wavelength
     ///
     /// Spacing between strips, reverse relation.
-    F32 lambda;
+    F64 lambda;
 
     /// Phase offset
     ///
     /// Spacial shift of the strips.
-    F32 psi;
+    F64 psi;
 
-    inline GaborFilter(F32 sigma, F32 theta, F32 gamma, F32 lambda, F32 psi)
+    inline GaborFilter(F64 sigma, F64 theta, F64 gamma, F64 lambda, F64 psi)
         : sigma(sigma), theta(theta), gamma(gamma), lambda(lambda), psi(psi)
     {
         this->theta *= 0.017453292519943295;
@@ -210,13 +210,13 @@ public:
     /// @param size half size of the window. full size of the window is 2 * size + 1.
     /// @param filters list of 'DoGFilter's to be applied.
     /// @param pad padding size of the input (default 0).
-    DoG(Size size, const std::vector<DoGFilter> &filters, Expand4 pad = 0);
+    DoG(Size size, const std::vector<DoGFilter> &filters, Expand4 pad = 0, Type type = Type::F32);
 
     /// @param device device of the filter to be run on.
     /// @param size half size of the window. full size of the window is 2 * size + 1.
     /// @param filters list of 'DoGFilter's to be applied.
     /// @param pad padding size of the input (default 0).
-    DoG(Device device, Size size, const std::vector<DoGFilter> &filters, Expand4 pad = 0);
+    DoG(Device device, Size size, const std::vector<DoGFilter> &filters, Expand4 pad = 0, Type type = Type::F32);
 
     /// Apply the filter on the input.
     ///
@@ -251,13 +251,13 @@ public:
     /// @param size half size of the window. full size of the window is 2 * size + 1.
     /// @param filters list of 'GaborFilter's to be applied.
     /// @param pad padding size of the input (TBLR) (default 0).
-    Gabor(Size size, const std::vector<GaborFilter> &filters, Expand4 pad = 0);
+    Gabor(Size size, const std::vector<GaborFilter> &filters, Expand4 pad = 0, Type type = Type::F32);
 
     /// @param device device of the filter to be run on.
     /// @param size half size of the window. full size of the window is 2 * size + 1.
     /// @param filters list of 'GaborFilter's to be applied.
     /// @param pad padding size of the input (TBLR) (default 0).
-    Gabor(Device device, Size size, const std::vector<GaborFilter> &filters, Expand4 pad = 0);
+    Gabor(Device device, Size size, const std::vector<GaborFilter> &filters, Expand4 pad = 0, Type type = Type::F32);
 
     /// Apply the filter on the input.
     ///
@@ -292,13 +292,13 @@ public:
     /// @param size half size of the window. full size of the window is 2 * size + 1.
     /// @param stds list of stds for the LoG filters to be applied.
     /// @param pad padding size of the input (TBLR) (default 0).
-    LoG(Size size, const std::vector<F32> &stds, Expand4 pad = 0);
+    LoG(Size size, const std::vector<F64> &stds, Expand4 pad = 0, Type type = Type::F32);
 
     /// @param device device of the filter to be run on.
     /// @param size half size of the window. full size of the window is 2 * size + 1.
     /// @param stds list of stds for the LoG filters to be applied.
     /// @param pad padding size of the input (TBLR) (default 0).
-    LoG(Device device, Size size, const std::vector<F32> &stds, Expand4 pad = 0);
+    LoG(Device device, Size size, const std::vector<F64> &stds, Expand4 pad = 0, Type type = Type::F32);
 
     /// Apply the filter on the input.
     ///
@@ -379,7 +379,7 @@ public:
     /// @param pad padding size of the convolution (default 0).
     /// @param mean mean of the random normal variable that initializes the kernel (default 0.5).
     /// @param std standard deviation of the random normal variable that initializes the kernel (default 0.02).
-    Conv(Size input, Size output, Expand2 kernel, Expand2 stride = 1, Expand4 pad = 0, F32 mean = .5, F32 std = .02,
+    Conv(Size input, Size output, Expand2 kernel, Expand2 stride = 1, Expand4 pad = 0, F64 mean = .5, F64 std = .02,
          Type type = Type::F32);
 
     /// @param device device of the module to be run on.
@@ -390,8 +390,8 @@ public:
     /// @param pad padding size of the convolution (default 0).
     /// @param mean mean of the random normal variable that initializes the kernel (default 0.5).
     /// @param std standard deviation of the random normal variable that initializes the kernel (default 0.02).
-    Conv(Device device, Size input, Size output, Expand2 kernel, Expand2 stride = 1, Expand4 pad = 0, F32 mean = .5,
-         F32 std = .02, Type type = Type::F32);
+    Conv(Device device, Size input, Size output, Expand2 kernel, Expand2 stride = 1, Expand4 pad = 0, F64 mean = .5,
+         F64 std = .02, Type type = Type::F32);
 
     /// Apply the convolution on the input.
     ///
@@ -456,14 +456,14 @@ public:
     /// @param output dimensions of the output signal.
     /// @param mean mean of the random normal variable that initializes the kernel (default 0.5).
     /// @param std standard deviation of the random normal variable that initializes the kernel (default 0.02).
-    FC(Size input, Size output, F32 mean = .5, F32 std = .02, Type type = Type::F32);
+    FC(Size input, Size output, F64 mean = .5, F64 std = .02, Type type = Type::F32);
 
     /// @param device device of the module to be run on.
     /// @param input dimensions of the input signal.
     /// @param output dimensions of the output signal.
     /// @param mean mean of the random normal variable that initializes the kernel (default 0.5).
     /// @param std standard deviation of the random normal variable that initializes the kernel (default 0.02).
-    FC(Device device, Size input, Size output, F32 mean = .5, F32 std = .02, Type type = Type::F32);
+    FC(Device device, Size input, Size output, F64 mean = .5, F64 std = .02, Type type = Type::F32);
 
     /// Apply the fully connected on the input.
     ///

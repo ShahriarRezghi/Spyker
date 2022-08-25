@@ -239,7 +239,7 @@ class DoG(impl.DoG):
         Apply the filter on the input
     """
 
-    def __init__(self, size, filter, pad=0, device=impl.device('cpu')):
+    def __init__(self, size, filter, pad=0, device=impl.device('cpu'), dtype='f32'):
         """
         Parameters
         ----------
@@ -255,7 +255,7 @@ class DoG(impl.DoG):
 
         pad = expand4(pad)
         if isinstance(filter, DoGFilter): filter = [filter]
-        super().__init__(device, size, filter, pad)
+        super().__init__(device, size, filter, pad, dtype)
         self.device = device
         self.pad = pad
 
@@ -276,7 +276,7 @@ class DoG(impl.DoG):
 
         input_ = to4(wrap(input))
         shape = impl.shape.dog(input_.shape, self.kernel.shape, self.pad)
-        output = create(input, 'f32', shape)
+        output = create(input, self.kernel.dtype, shape)
         self._forward(input_, wrap(output))
         return output
 
@@ -296,7 +296,7 @@ class Gabor(impl.Gabor):
         Apply the filter on the input
     """
 
-    def __init__(self, size, filter, pad=0, device=impl.device('cpu')):
+    def __init__(self, size, filter, pad=0, device=impl.device('cpu'), dtype='f32'):
         """
         Parameters
         ----------
@@ -312,7 +312,7 @@ class Gabor(impl.Gabor):
 
         pad = expand4(pad)
         if isinstance(filter, GaborFilter): filter = [filter]
-        super().__init__(device, size, filter, pad)
+        super().__init__(device, size, filter, pad, dtype)
         self.device = device
         self.pad = pad
 
@@ -333,7 +333,7 @@ class Gabor(impl.Gabor):
 
         input_ = to4(wrap(input))
         shape = impl.shape.gabor(input_.shape, self.kernel.shape, self.pad)
-        output = create(input, 'f32', shape)
+        output = create(input, self.kernel.dtype, shape)
         self._forward(input_, wrap(output))
         return output
 
@@ -353,7 +353,7 @@ class LoG(impl.LoG):
         Apply the filter on the input
     """
 
-    def __init__(self, size, std, pad=0, device=impl.device('cpu')):
+    def __init__(self, size, std, pad=0, device=impl.device('cpu'), dtype='f32'):
         """
         Parameters
         ----------
@@ -368,7 +368,7 @@ class LoG(impl.LoG):
         """
 
         pad = expand4(pad)
-        super().__init__(device, size, std, pad)
+        super().__init__(device, size, std, pad, dtype)
         self.device = device
         self.pad = pad
 
@@ -389,7 +389,7 @@ class LoG(impl.LoG):
 
         input_ = to4(wrap(input))
         shape = impl.shape.log(input_.shape, self.kernel.shape, self.pad)
-        output = create(input, 'f32', shape)
+        output = create(input, self.kernel.dtype, shape)
         self._forward(input_, wrap(output))
         return output
 
@@ -429,7 +429,6 @@ class FC(impl.FC):
 
         super().__init__(device, input, output, mean, std, dtype)
         self.device = device
-        self.dtype = dtype
     
     def __call__(self, input, sign=False):
         """
@@ -448,7 +447,7 @@ class FC(impl.FC):
 
         input_ = to3(wrap(input))
         shape = impl.shape.fc(input_.shape, self.kernel.shape)
-        output = create(input, self.dtype, shape)
+        output = create(input, self.kernel.dtype, shape)
         self._forward(input_, wrap(output), sign)
         return output
 
@@ -522,7 +521,6 @@ class Conv(impl.Conv):
         self.device = device
         self.stride = stride
         self.pad = pad
-        self.dtype = dtype
 
     def __call__(self, input, threshold=None):
         """
@@ -544,7 +542,7 @@ class Conv(impl.Conv):
 
         input_ = to5(wrap(input))
         shape = impl.shape.conv(input_.shape, self.kernel.shape, self.stride, self.pad)
-        output = create(input, self.dtype, shape)
+        output = create(input, self.kernel.dtype, shape)
         self._forward(input_, wrap(output))
         return output
 
@@ -613,7 +611,7 @@ def fc(input, kernel, sign=False):
     input_ = to3(wrap(input))
     kernel_ = wrap(kernel)
     shape = impl.shape.fc(input_.shape, kernel_.shape)
-    output = create(input, 'f32', shape)
+    output = create(input, kernel_.dtype, shape)
     impl.fc(input_, kernel_, wrap(output), sign)
     return output
 
@@ -645,7 +643,7 @@ def conv(input, kernel, stride=1, pad=0):
 
     input_ = to5(wrap(input))
     shape = impl.shape.conv(input_.shape, kernel_.shape, stride, pad)
-    output = create(input, 'f32', shape)
+    output = create(input, kernel_.dtype, shape)
     impl.conv(input_, kernel_, wrap(output), stride, pad)
     return output
 

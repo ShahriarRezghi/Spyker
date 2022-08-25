@@ -214,12 +214,12 @@ PYBIND11_MODULE(spyker_plugin, m)
         .def("mnist_label", &Helper::mnistLabel);
 
     py::class_<DoGFilter>(m, "DoGFilter")
-        .def(py::init<F32, F32>())
+        .def(py::init<F64, F64>())
         .def_readwrite("std1", &DoGFilter::std1)
         .def_readwrite("std2", &DoGFilter::std2);
 
     py::class_<GaborFilter>(m, "GaborFilter")
-        .def(py::init<F32, F32, F32, F32, F32>())
+        .def(py::init<F64, F64, F64, F64, F64>())
         .def_readwrite("sigma", &GaborFilter::sigma)
         .def_readwrite("theta", &GaborFilter::theta)
         .def_readwrite("gamma", &GaborFilter::gamma)
@@ -227,7 +227,7 @@ PYBIND11_MODULE(spyker_plugin, m)
         .def_readwrite("psi", &GaborFilter::psi);
 
     py::class_<STDPConfig>(m, "STDPConfig")
-        .def(py::init<F32, F32, bool, F32, F32>())
+        .def(py::init<F64, F64, bool, F64, F64>())
         .def_readwrite("stabilize", &STDPConfig::stabilize)
         .def_readwrite("pos", &STDPConfig::pos)
         .def_readwrite("neg", &STDPConfig::neg)
@@ -235,7 +235,7 @@ PYBIND11_MODULE(spyker_plugin, m)
         .def_readwrite("high", &STDPConfig::high);
 
     py::class_<BPConfig>(m, "BPConfig")
-        .def(py::init<F32, F32, F32, F32>())
+        .def(py::init<F64, F64, F64, F64>())
         .def_readwrite("sfactor", &BPConfig::sfactor)
         .def_readwrite("lrate", &BPConfig::lrate)
         .def_readwrite("lrf", &BPConfig::lrf)
@@ -251,22 +251,28 @@ PYBIND11_MODULE(spyker_plugin, m)
              [](ZCA &layer, Tensor input, F64 epsilon, bool transform) { layer.fit(input, epsilon, transform); });
 
     py::class_<DoG>(m, "DoG")
-        .def(py::init<Device, Size, const std::vector<DoGFilter> &, Shape>())
+        .def(py::init([](Device _1, Size _2, const std::vector<DoGFilter> &_3, Shape _4, std::string _5) {
+            return new DoG(_1, _2, _3, _4, str2type(_5));
+        }))
         .def_readwrite("kernel", &DoG::kernel)
         .def("_forward", [](DoG &layer, Tensor input, Tensor output) { layer(input, output); });
 
     py::class_<Gabor>(m, "Gabor")
-        .def(py::init<Device, Size, const std::vector<GaborFilter> &, Shape>())
+        .def(py::init([](Device _1, Size _2, const std::vector<GaborFilter> &_3, Shape _4, std::string _5) {
+            return new Gabor(_1, _2, _3, _4, str2type(_5));
+        }))
         .def_readwrite("kernel", &Gabor::kernel)
         .def("_forward", [](Gabor &layer, Tensor input, Tensor output) { layer(input, output); });
 
     py::class_<LoG>(m, "LoG")
-        .def(py::init<Device, Size, const std::vector<F32> &, Shape>())
+        .def(py::init([](Device _1, Size _2, const std::vector<F64> &_3, Shape _4, std::string _5) {
+            return new LoG(_1, _2, _3, _4, str2type(_5));
+        }))
         .def_readwrite("kernel", &LoG::kernel)
         .def("_forward", [](LoG &layer, Tensor input, Tensor output) { layer(input, output); });
 
     py::class_<FC>(m, "FC")
-        .def(py::init([](Device _1, Size _2, Size _3, F32 _4, F32 _5, std::string _6) {
+        .def(py::init([](Device _1, Size _2, Size _3, F64 _4, F64 _5, std::string _6) {
             return new FC(_1, _2, _3, _4, _5, str2type(_6));
         }))
         .def_readwrite("kernel", &FC::kernel)
@@ -280,7 +286,7 @@ PYBIND11_MODULE(spyker_plugin, m)
         });
 
     py::class_<Conv>(m, "Conv")
-        .def(py::init([](Device _1, Size _2, Size _3, Shape _4, Shape _5, Shape _6, F32 _7, F32 _8, std::string _9) {
+        .def(py::init([](Device _1, Size _2, Size _3, Shape _4, Shape _5, Shape _6, F64 _7, F64 _8, std::string _9) {
             return Conv(_1, _2, _3, _4, _5, _6, _7, _8, str2type(_9));
         }))
         .def_readwrite("kernel", &Conv::kernel)
@@ -291,35 +297,35 @@ PYBIND11_MODULE(spyker_plugin, m)
                          Tensor output) { layer.stdp(input, winners, output); })
         .def("_stdp", [](Conv &layer, SparseTensor input, const Winners &winners) { layer.stdp(input, winners); });
 
-    m.def("canny", [](Tensor input, Tensor output, F32 low, F32 high) { Spyker::canny(input, output, low, high); })
+    m.def("canny", [](Tensor input, Tensor output, F64 low, F64 high) { Spyker::canny(input, output, low, high); })
         .def("conv", [](Tensor input, Tensor kernel, Tensor output, Shape stride,
                         Shape pad) { Spyker::conv(input, kernel, output, stride, pad); })
         .def("fc",
              [](Tensor input, Tensor kernel, Tensor output, bool sign) { Spyker::fc(input, kernel, output, sign); })
-        .def("pad", [](Tensor input, Tensor output, Shape pad, F32 value) { Spyker::pad(input, output, pad, value); })
+        .def("pad", [](Tensor input, Tensor output, Shape pad, F64 value) { Spyker::pad(input, output, pad, value); })
         .def("threshold",
-             [](Tensor input, F32 threshold, F32 value) { Spyker::threshold(input, threshold, value, true); })
-        .def("quantize", [](Tensor input, F32 lower, F32 middle,
-                            F32 upper) { Spyker::quantize(input, lower, middle, upper, true); })
+             [](Tensor input, F64 threshold, F64 value) { Spyker::threshold(input, threshold, value, true); })
+        .def("quantize", [](Tensor input, F64 lower, F64 middle,
+                            F64 upper) { Spyker::quantize(input, lower, middle, upper, true); })
         .def("code", [](Tensor input, Tensor output, Size time, bool sort,
                         std::string code) { Spyker::code(input, output, time, sort, str2code(code)); })
-        .def("infinite", [](Tensor input, F32 value) { Spyker::infinite(input, value, true); })
-        .def("fire", [](Tensor input, Tensor output, F32 threshold,
+        .def("infinite", [](Tensor input, F64 value) { Spyker::infinite(input, value, true); })
+        .def("fire", [](Tensor input, Tensor output, F64 threshold,
                         std::string code) { Spyker::fire(input, output, threshold, str2code(code)); })
-        .def("gather", [](Tensor input, Tensor output, F32 threshold,
+        .def("gather", [](Tensor input, Tensor output, F64 threshold,
                           std::string code) { Spyker::gather(input, output, threshold, str2code(code)); })
         .def("scatter", [](Tensor input, Tensor output) { Spyker::scatter(input, output); })
         .def("pool", [](Tensor input, Tensor output, Shape kernel, Shape stride, Shape pad,
                         Tensor rates) { Spyker::pool(input, output, kernel, stride, pad, rates); })
-        .def("inhibit", [](Tensor input, F32 threshold) { Spyker::inhibit(input, threshold, true); })
+        .def("inhibit", [](Tensor input, F64 threshold) { Spyker::inhibit(input, threshold, true); })
         .def("fcwta", [](Tensor input, Size radius, Size count,
-                         F32 threshold) { return Spyker::fcwta(input, radius, count, threshold); })
+                         F64 threshold) { return Spyker::fcwta(input, radius, count, threshold); })
         .def("convwta", [](Tensor input, Shape radius, Size count,
-                           F32 threshold) { return Spyker::convwta(input, radius, count, threshold); })
+                           F64 threshold) { return Spyker::convwta(input, radius, count, threshold); })
         .def("backward", [](Tensor input, Tensor output, Tensor target, Size time,
-                            F32 gamma) { Spyker::backward(input, output, target, time, gamma); })
+                            F64 gamma) { Spyker::backward(input, output, target, time, gamma); })
         .def("labelize",
-             [](Tensor input, Tensor output, F32 threshold) { Spyker::labelize(input, output, threshold); });
+             [](Tensor input, Tensor output, F64 threshold) { Spyker::labelize(input, output, threshold); });
 
     using namespace Spyker::Sparse;
     m.def_submodule("sparse")

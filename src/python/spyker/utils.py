@@ -72,6 +72,7 @@ def wrap_numpy(input, write):
 
 
 def type2torch(dtype):
+    dtype = dtype.lower()
     if dtype == 'i8': return torch.int8
     if dtype == 'i16': return torch.int16
     if dtype == 'i32': return torch.int32
@@ -97,6 +98,7 @@ def create_torch(input, dtype, shape):
 
 
 def type_numpy(dtype):
+    dtype = dtype.lower()
     if dtype == 'i8': return np.int8
     if dtype == 'i16': return np.int16
     if dtype == 'i32': return np.int32

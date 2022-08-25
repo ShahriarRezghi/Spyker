@@ -177,13 +177,13 @@ std::vector<Device> devices();
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void normal_kernel(Vec1<F32> kernel, F32 mean, F32 std);
+void normal_kernel(Vec1<F64> kernel, F64 mean, F64 std);
 
-void gaussian_kernel(Vec2<F32> kernel, F32 std);
+void gaussian_kernel(Vec2<F64> kernel, F64 std);
 
-void gabor_kernel(Vec2<F32> kernel, F32 sigma, F32 theta, F32 gamma, F32 lambda, F32 psi);
+void gabor_kernel(Vec2<F64> kernel, F64 sigma, F64 theta, F64 gamma, F64 lambda, F64 psi);
 
-void log_kernel(Vec2<F32> kernel, F32 std);
+void log_kernel(Vec2<F64> kernel, F64 std);
 
 Vec2<U16> poisson_create(Size time, Size bins);
 

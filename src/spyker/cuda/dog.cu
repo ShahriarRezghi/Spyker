@@ -7,18 +7,18 @@ namespace Core
 namespace CUDA
 {
 template <typename T>
-__global__ void dog(Cize size, PTR(T, input), PTR(F32, output))
+__global__ void dog(Cize size, PTR(T, input), PTR(T, output))
 {
     input += blockIdx.y * 2 * size, output += blockIdx.y * size;
     Cize i = Index1;
     if (size <= i) return;
-    output[i] = max(input[i] - input[i + size], F32(0));
+    output[i] = cmax(input[i] - input[i + size], T(0));
 }
 
-template <typename I>
-void dog(Vec4<I> input, Vec4<F32> kernel, Vec4<F32> output, Len4 pad)
+template <typename T>
+void dog(Vec4<T> input, Vec4<T> kernel, Vec4<T> output, Len4 pad)
 {
-    auto middle = init<F32>(output.t, kernel.t, output.y, output.x);
+    auto middle = init<T>(output.t, kernel.t, output.y, output.x);
     cuda_conv(todyn(input), todyn(kernel), todyn(middle), {1, 1}, pad);
     Len2 dim = {output.t, output.z * output.y * output.x};
     dog<<<Config1(1, dim.y, dim.x)>>>(dim.x, middle.data, output.data);
@@ -33,12 +33,12 @@ __global__ void log(Cize size, PTR(T, input))
     if (size <= i) return;
 
     T diff = input1[i] - input2[i];
-    input1[i] = max(diff, T(0));
-    input2[i] = max(-diff, T(0));
+    input1[i] = cmax(diff, T(0));
+    input2[i] = cmax(-diff, T(0));
 }
 
 template <typename T>
-void log(Vec4<T> input, Vec4<F32> kernel, Vec4<F32> output, Len4 pad)
+void log(Vec4<T> input, Vec4<T> kernel, Vec4<T> output, Len4 pad)
 {
     cuda_conv(todyn(input), todyn(kernel), todyn(output), {1, 1}, pad);
     Len2 dim = {output.t, output.z / 2 * output.y * output.x};
@@ -66,11 +66,11 @@ void zca_split(Vec2<T> input, Vec3<T> output)
 
 void cuda_dog(Dyn4 input, Dyn4 kernel, Dyn4 output, Len4 pad)
 {
-    IfType(T, input.type, CUDA::dog<T>(input, kernel, output, pad));
+    IfType(T, kernel.type, CUDA::dog<T>(input, kernel, output, pad));
 }
 void cuda_log(Dyn4 input, Dyn4 kernel, Dyn4 output, Len4 pad)
 {
-    IfType(T, input.type, CUDA::log<T>(input, kernel, output, pad));
+    IfType(T, kernel.type, CUDA::log<T>(input, kernel, output, pad));
 }
 void cuda_gabor(Dyn4 input, Dyn4 kernel, Dyn4 output, Len4 pad) { cuda_conv(input, kernel, output, {1, 1}, pad); }
 

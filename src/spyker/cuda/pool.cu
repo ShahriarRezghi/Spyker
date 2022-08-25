@@ -100,22 +100,32 @@ struct Pool
         cudnnDestroyTensorDescriptor(output);
         cudnnDestroyPoolingDescriptor(pool);
     }
-    void operator()(Vec4<U8> input_, Vec4<U8> output_)
+    cudnnDataType_t cvt(Type type)
+    {
+        if (type == Type::I8) return CUDNN_DATA_INT8;
+        if (type == Type::U8) return CUDNN_DATA_INT8;
+        if (type == Type::F16) return CUDNN_DATA_HALF;
+        if (type == Type::F32) return CUDNN_DATA_FLOAT;
+        if (type == Type::F64) return CUDNN_DATA_DOUBLE;
+        SpykerAssert(false, "CUDA::Conv", "Data type is not supported in cuDNN.");
+    }
+    template <typename T>
+    void operator()(Vec4<T> input_, Vec4<T> output_)
     {
         F32 alpha = 1, beta = 0;
-        CudnnCheck(cudnnSetTensor4dDescriptor(input, CUDNN_TENSOR_NCHW, CUDNN_DATA_INT8,  //
+        CudnnCheck(cudnnSetTensor4dDescriptor(input, CUDNN_TENSOR_NCHW, cvt(TypeName<T>()),  //
                                               input_.t, input_.z, input_.y, input_.x));
-        CudnnCheck(cudnnSetTensor4dDescriptor(output, CUDNN_TENSOR_NCHW, CUDNN_DATA_INT8,  //
+        CudnnCheck(cudnnSetTensor4dDescriptor(output, CUDNN_TENSOR_NCHW, cvt(TypeName<T>()),  //
                                               output_.t, output_.z, output_.y, output_.x));
         CudnnCheck(cudnnPoolingForward(cudnn_static->handle, pool, &alpha, input, input_.data,  //
                                        &beta, output, output_.data));
     }
-    void operator()(Vec4<F32> input_, Vec4<F32> output_)
+    void operator()(Vec4<F64> input_, Vec4<F64> output_)
     {
-        F32 alpha = 1, beta = 0;
-        CudnnCheck(cudnnSetTensor4dDescriptor(input, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,  //
+        F64 alpha = 1, beta = 0;
+        CudnnCheck(cudnnSetTensor4dDescriptor(input, CUDNN_TENSOR_NCHW, CUDNN_DATA_DOUBLE,  //
                                               input_.t, input_.z, input_.y, input_.x));
-        CudnnCheck(cudnnSetTensor4dDescriptor(output, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,  //
+        CudnnCheck(cudnnSetTensor4dDescriptor(output, CUDNN_TENSOR_NCHW, CUDNN_DATA_DOUBLE,  //
                                               output_.t, output_.z, output_.y, output_.x));
         CudnnCheck(cudnnPoolingForward(cudnn_static->handle, pool, &alpha, input, input_.data,  //
                                        &beta, output, output_.data));
@@ -185,10 +195,16 @@ void cuda_pad(Dyn3 input, Dyn3 output, Len4 pad, Scalar value)
 }
 void cuda_rank_pool(Dyn4 input, Dyn4 output, Len2 kernel, Len2 stride, Len4 pad)
 {
-    if (input.type == Type::U8)
+    if (input.type == Type::I8)
+        CUDA::rank_pool<I8>(input, output, kernel, stride, pad);
+    else if (input.type == Type::U8)
         CUDA::rank_pool<U8>(input, output, kernel, stride, pad);
+    else if (input.type == Type::F16)
+        CUDA::rank_pool<F16>(input, output, kernel, stride, pad);
     else if (input.type == Type::F32)
         CUDA::rank_pool<F32>(input, output, kernel, stride, pad);
+    else if (input.type == Type::F64)
+        CUDA::rank_pool<F64>(input, output, kernel, stride, pad);
     else
         SpykerAssert(false, "CUDA::Pool", "Given data type is not supported.");
 }

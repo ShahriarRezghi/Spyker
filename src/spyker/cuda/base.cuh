@@ -360,6 +360,27 @@ struct ToFloat<C16>
     using Type = C16;
 };
 
+inline Dyn1 todyn(Vec1<C16> input)  //
+{
+    return Dyn1(input.data, Type::F16, input.x);
+}
+inline Dyn2 todyn(Vec2<C16> input)  //
+{
+    return Dyn2(input.data, Type::F16, input.y, input.x);
+}
+inline Dyn3 todyn(Vec3<C16> input)  //
+{
+    return Dyn3(input.data, Type::F16, input.z, input.y, input.x);
+}
+inline Dyn4 todyn(Vec4<C16> input)  //
+{
+    return Dyn4(input.data, Type::F16, input.t, input.z, input.y, input.x);
+}
+inline Dyn5 todyn(Vec5<C16> input)  //
+{
+    return Dyn5(input.data, Type::F16, input.u, input.t, input.z, input.y, input.x);
+}
+
 namespace Core
 {
 template <typename T>

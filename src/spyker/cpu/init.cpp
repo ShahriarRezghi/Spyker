@@ -5,56 +5,56 @@ namespace Spyker
 {
 namespace Core
 {
-void normalize(PTR(F32, input), Size size)
+void normalize(PTR(F64, input), Size size)
 {
-    F32 sum = 0;
+    F64 sum = 0;
     for (Size i = 0; i < size; ++i) sum += input[i];
     for (Size i = 0; i < size; ++i) input[i] /= sum;
 }
 
-void normal_kernel(Vec1<F32> input, F32 mean, F32 std)
+void normal_kernel(Vec1<F64> input, F64 mean, F64 std)
 {
-    std::normal_distribution<F32> dist(mean, std);
+    std::normal_distribution<F64> dist(mean, std);
     for (Size i = 0; i < input.x; ++i) input(i) = dist(Generator);
 }
 
-void gaussian_kernel(Vec2<F32> kernel, F32 std)
+void gaussian_kernel(Vec2<F64> kernel, F64 std)
 {
     Size size = kernel.x / 2;
     for (Size i = -size; i <= size; ++i)
         for (Size j = -size; j <= size; ++j)
         {
-            F32 dist = std::sqrt(i * i + j * j);
-            F32 value = std::exp(-.5 * std::pow(dist / std, 2));
+            F64 dist = std::sqrt(i * i + j * j);
+            F64 value = std::exp(-.5 * std::pow(dist / std, 2));
             *kernel(i + size, j + size) = value;
         }
     normalize(kernel.data, kernel.size());
 }
 
-void gabor_kernel(Vec2<F32> kernel, F32 sigma, F32 theta, F32 gamma, F32 lambda, F32 psi)
+void gabor_kernel(Vec2<F64> kernel, F64 sigma, F64 theta, F64 gamma, F64 lambda, F64 psi)
 {
     Size size = kernel.x / 2;
     for (Size i = -size; i <= size; ++i)
         for (Size j = -size; j <= size; ++j)
         {
-            F32 x = i * std::cos(theta) + j * std::sin(theta);
-            F32 y = -i * std::sin(theta) + j * std::cos(theta);
-            F32 A = std::exp(-(x * x + gamma * gamma * y * y) / (2 * sigma * sigma));
-            F32 B = std::cos(2 * PI * x / lambda + psi);
+            F64 x = i * std::cos(theta) + j * std::sin(theta);
+            F64 y = -i * std::sin(theta) + j * std::cos(theta);
+            F64 A = std::exp(-(x * x + gamma * gamma * y * y) / (2 * sigma * sigma));
+            F64 B = std::cos(2 * PI * x / lambda + psi);
             *kernel(i + size, j + size) = A * B;
         }
     normalize(kernel.data, kernel.size());
 }
 
-void log_kernel(Vec2<F32> kernel, F32 std)
+void log_kernel(Vec2<F64> kernel, F64 std)
 {
     Size size = kernel.x / 2;
-    F32 div = -PI * std::pow(std, 4);
+    F64 div = -PI * std::pow(std, 4);
     for (Size i = -size; i <= size; ++i)
         for (Size j = -size; j <= size; ++j)
         {
-            F32 A = (i * i + j * j) / (-2 * std * std);
-            F32 value = (1 + A) * std::exp(A) / div;
+            F64 A = (i * i + j * j) / (-2 * std * std);
+            F64 value = (1 + A) * std::exp(A) / div;
             *kernel(i + size, j + size) = value;
         }
 }

@@ -22,9 +22,8 @@ struct Conv
 
     dnnl::memory::data_type cvt(Type type)
     {
-        if (type == Type::F16) return dnnl::memory::data_type::f16;
         if (type == Type::F32) return dnnl::memory::data_type::f32;
-        SpykerAssert(false, "CPU::Conv", "Data type is not supported in DNNL.");
+        SpykerAssert(false, "CPU::Conv", "Data type " << type << " is not supported with DNNL.");
     }
     Conv(Len4 _input, Len4 _kernel, Len4 _output, Len2 _stride, Len4 _pad, Type _type)
         : _input(_input), _kernel(_kernel), _output(_output), _stride(_stride), _pad(_pad), _type(_type)
@@ -76,10 +75,6 @@ void _conv(Vec4<T> input, Vec4<T> kernel, Vec4<T> output, Len2 stride, Len4 pad)
 {
     Conv &conv = conv_find(input.len(), kernel.len(), output.len(), stride, pad, TypeName<T>());
     conv(input.data, kernel.data, output.data);
-}
-void _conv(Vec4<F64> input, Vec4<F64> kernel, Vec4<F64> output, Len2 stride, Len4 pad)
-{
-    SpykerAssert(false, "CPU::Conv", "F64 is not supported with DNNL.");
 }
 
 #elif defined(HEAVY_USE_BLAS)
