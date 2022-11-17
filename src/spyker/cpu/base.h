@@ -160,6 +160,17 @@ T minval(Size size, PTR(T, input))
     for (Size i = 0; i < size; ++i) min = std::min(min, input[i]);
     return min;
 }
+template <typename T>
+std::pair<T, T> minmax(Size size, PTR(T, input))
+{
+    T min = input[0], max = input[0];
+    for (Size i = 0; i < size; ++i)
+    {
+        min = std::min(min, input[i]);
+        max = std::max(max, input[i]);
+    }
+    return {min, max};
+}
 template <typename V>
 typename V::Type maxval(V vec)
 {
@@ -169,6 +180,11 @@ template <typename V>
 typename V::Type minval(V vec)
 {
     return minval(vec.size(), vec.data);
+}
+template <typename V>
+std::pair<typename V::Type, typename V::Type> minmax(V vec)
+{
+    return minmax(vec.size(), vec.data);
 }
 }  // namespace CPU
 }  // namespace Core

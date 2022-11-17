@@ -87,12 +87,30 @@ SpykerExport void cudaCachePrint(Size device = -1);
 
 /// Set light convolution mode.
 ///
-/// When CUDNN is enabled and light convolution is active, convolutions might use
-/// less memory on CUDA. Enabling this might decrease performance in some cases.
+/// When CUDNN is enabled and light convolution is active, newely created convolution descriptors
+/// (not cached ones) use algorithms that take up less memory. Enabling this might decrease performance in some cases.
 /// This is disabled by default.
 ///
 /// @param light light convolution mode.
-SpykerExport void lightConv(bool light);
+SpykerExport void cudaConvLight(bool light);
+
+/// Set heuristic convolution algorithm finding mode.
+///
+/// When CUDNN is enabled and heuristic algorithm finding is active, newely created convolution descriptors
+/// (not cached ones) will use heuristics to find the fastest convolution algorithms instead of running samples.
+/// Enabling this might decrease performance in some cases. This is enabled by default.
+///
+/// @param heuristic heuristic convolution mode.
+SpykerExport void cudaConvHeuristic(bool heuristic);
+
+/// Set heuristic convolution algorithm finding mode.
+///
+/// When CUDNN is enabled and heuristic algorithm finding is active, newely created convolution descriptors
+/// (not cached ones) will use heuristics to find the fastest convolution algorithms instead of running samples.
+/// Enabling this might decrease performance in some cases. This is enabled by default.
+///
+/// @param heuristic heuristic convolution mode.
+SpykerExport void cudaConvForce(bool force);
 
 /// Get a list of all the available devices that the library can use.
 /// @return a list of available devices.

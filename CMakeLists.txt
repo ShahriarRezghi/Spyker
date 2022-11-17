@@ -93,6 +93,7 @@ endif()
 string(REPLACE " " ";" OPTIM_FLAGS "${OPTIM_FLAGS}")
 string(REPLACE " " ";" CUDA_ARCH_LIST "${CUDA_ARCH_LIST}")
 
+# CUDA
 if(ENABLE_CUDA)
     include(CheckLanguage)
     check_language(CUDA)
@@ -145,6 +146,7 @@ if(ENABLE_CUDA)
     endif()
 endif()
 
+# cuDNN
 if(CUDA_ENABLED AND ENABLE_CUDNN)
     find_package(CUDNN)
 

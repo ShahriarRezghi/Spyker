@@ -7,6 +7,8 @@ namespace Core
 namespace CUDA
 {
 bool LightConv = false;
+bool HeuristicConv = true;
+bool ForceCore = false;
 
 #ifdef SPYKER_USE_CUDNN
 struct Workspace
@@ -19,6 +21,27 @@ struct Workspace
         if (ptr != nullptr) cuda_dealloc(ptr);
     }
 } space;
+
+std::map<cudnnConvolutionFwdAlgo_t, std::string> algo_map = {
+    {CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM, "IMPLICIT_GEMM"},
+    {CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM, "IMPLICIT_PRECOMP_GEMM"},
+    {CUDNN_CONVOLUTION_FWD_ALGO_GEMM, "GEMM"},
+    {CUDNN_CONVOLUTION_FWD_ALGO_DIRECT, "DIRECT"},
+    {CUDNN_CONVOLUTION_FWD_ALGO_FFT, "ALGO_FFT"},
+    {CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING, "FFT_TILING"},
+    {CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD, "WINOGRAD"},
+    {CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED, "WINOGRAD_NONFUSED"}};
+
+std::map<cudnnMathType_t, std::string> math_map = {
+    {CUDNN_DEFAULT_MATH, "DEFAULT_MATH"},
+    {CUDNN_TENSOR_OP_MATH, "TENSOR_OP_MATH"},
+    {CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION, "TENSOR_OP_MATH_ALLOW_CONVERSION"},
+    {CUDNN_FMA_MATH, "FMA_MATH"}};
+
+std::map<Type, std::string> type_map = {  //
+    {Type::U8, "U8"},   {Type::U16, "U16"}, {Type::U32, "U32"}, {Type::U64, "U64"},
+    {Type::I8, "I8"},   {Type::I16, "I16"}, {Type::I32, "I32"}, {Type::I64, "I64"},
+    {Type::F16, "F16"}, {Type::F32, "F32"}, {Type::F64, "F64"}};
 
 struct Conv
 {
@@ -35,6 +58,49 @@ struct Conv
     Len2 _pad;
     Type _type;
 
+    using perfs_t = std::vector<cudnnConvolutionFwdAlgoPerf_t>;
+
+    perfs_t find_algo()
+    {
+        perfs_t::value_type algos[CUDNN_CONVOLUTION_FWD_ALGO_COUNT];
+        int count = CUDNN_CONVOLUTION_FWD_ALGO_COUNT, returned;
+        auto function = cudnnFindConvolutionForwardAlgorithm;
+
+#if SPYKER_CUDNN_VERSION >= 7
+        if (HeuristicConv) function = cudnnGetConvolutionForwardAlgorithm_v7;
+#endif
+        CudnnCheck(function(cudnn_static->handle, input, kernel, conv, output, count, &returned, algos));
+        return perfs_t(algos, algos + returned);
+    }
+    Size find_light(const perfs_t &list)
+    {
+        if (!LightConv) return 0;
+        for (Size i = 0; i < list.size(); ++i)
+            if (list[i].algo == CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM ||          //
+                list[i].algo == CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM ||  //
+                list[i].algo == CUDNN_CONVOLUTION_FWD_ALGO_DIRECT ||                 //
+                list[i].algo == CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD)
+                return i;
+        return 0;
+    }
+    void set_algo(cudnnConvolutionFwdAlgo_t algo, Size memory, cudnnMathType_t math)
+    {
+#if SPYKER_CUDNN_VERSION >= 7
+        CudnnCheck(cudnnSetConvolutionMathType(conv, math));
+#endif
+        this->algo = algo;
+        if (memory <= 0 || memory <= space.size) return;
+        space.size = memory;
+        if (space.ptr != nullptr) cuda_dealloc(space.ptr);
+        space.ptr = cuda_alloc(space.size);
+    }
+    Size force_memory()
+    {
+        size_t memory;
+        auto algo = CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM;
+        cudnnGetConvolutionForwardWorkspaceSize(cudnn_static->handle, input, kernel, conv, output, algo, &memory);
+        return memory;
+    }
     cudnnDataType_t cvt(Type type)
     {
         if (type == Type::F16) return CUDNN_DATA_HALF;
@@ -62,38 +128,23 @@ struct Conv
         CudnnCheck(cudnnSetTensor4dDescriptor(  //
             output, CUDNN_TENSOR_NCHW, type, _output.t, _output.z, _output.y, _output.x));
 
-        int index = 0, count = CUDNN_CONVOLUTION_FWD_ALGO_COUNT, returned;
-        cudnnConvolutionFwdAlgoPerf_t algos[CUDNN_CONVOLUTION_FWD_ALGO_COUNT];
-
-#if SPYKER_CUDNN_VERSION >= 7
-        CudnnCheck(cudnnGetConvolutionForwardAlgorithm_v7(  //
-            cudnn_static->handle, input, kernel, conv, output, count, &returned, algos));
-#else
-        CudnnCheck(cudnnFindConvolutionForwardAlgorithm(  //
-            cudnn_static->handle, input, kernel, conv, output, count, &returned, algos));
-#endif
-
-        if (LightConv)
-            for (Size i = 0; i < returned; ++i)
-                if (algos[i].algo == CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM ||          //
-                    algos[i].algo == CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM ||  //
-                    algos[i].algo == CUDNN_CONVOLUTION_FWD_ALGO_DIRECT ||                 //
-                    algos[i].algo == CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD)
-                {
-                    index = i;
-                    break;
-                }
-
-#if SPYKER_CUDNN_VERSION >= 7
-        CudnnCheck(cudnnSetConvolutionMathType(conv, algos[index].mathType));
-#endif
-
-        algo = algos[index].algo;
-        if (algos[index].memory != 0 && space.size < algos[index].memory)
+        if (ForceCore)
         {
-            space.size = algos[index].memory;
-            if (space.ptr != nullptr) cuda_dealloc(space.ptr);
-            space.ptr = cuda_alloc(space.size);
+            set_algo(CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM,  //
+                     force_memory(), CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION);
+        }
+        else
+        {
+            auto list = find_algo();
+            auto index = find_light(list);
+            auto algo = list[index].algo;
+            auto math = list[index].mathType;
+
+            // if (int(cuda_current_arch()) >= 7 && math == CUDNN_DEFAULT_MATH)
+            //     if (algo == CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM ||
+            //         algo == CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED)
+            //         math = CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION;
+            set_algo(algo, list[index].memory, math);
         }
     }
     ~Conv()
@@ -148,13 +199,6 @@ void _conv(Vec4<T> input, Vec4<T> kernel, Vec4<T> output, Len2 stride, Len4 pad)
     conv(input.data, kernel.data, output.data);
 }
 
-void light_conv(bool light)
-{
-    SpykerCompare(space.ptr, ==, (void *)nullptr, "CUDA:Conv",
-                  "Light convolution can't be set after using convolutional layers.");
-    LightConv = light;
-}
-
 #else
 template <typename T>
 void _conv(Vec4<T> input, Vec4<T> kernel, Vec4<T> output, Len2 stride, Len4 pad)
@@ -163,8 +207,6 @@ void _conv(Vec4<T> input, Vec4<T> kernel, Vec4<T> output, Len2 stride, Len4 pad)
 }
 
 void conv_clear() {}
-
-void light_conv(bool light) { LightConv = light; }
 #endif
 
 template <typename T>
@@ -186,7 +228,15 @@ void cuda_conv(Dyn4 input, Dyn4 kernel, Dyn4 output, Len2 stride, Len4 pad)
 {
     IfReal(T, input.type, CUDA::conv<T>(input, kernel, output, stride, pad));
 }
-void cuda_conv_clear() { CUDA::conv_clear(); }
-void cuda_light_conv(bool light) { CUDA::light_conv(light); }
+void cuda_conv_clear()  //
+{
+    CUDA::conv_clear();
+}
+void cuda_conv_options(Size light, Size heuristic, Size force)
+{
+    if (light > -1) CUDA::LightConv = light;
+    if (heuristic > -1) CUDA::HeuristicConv = heuristic;
+    if (force > -1) CUDA::ForceCore = force;
+}
 }  // namespace Core
 }  // namespace Spyker

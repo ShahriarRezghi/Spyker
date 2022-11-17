@@ -81,6 +81,8 @@ void cuda_set_device(Size device);
 
 Size cuda_current_device();
 
+float cuda_current_arch();
+
 std::vector<Size> cuda_arch_list();
 
 std::vector<Size> cuda_device_arch();
@@ -123,7 +125,7 @@ void cuda_conv_clear();
 
 void cuda_poisson_clear();
 
-void cuda_light_conv(bool light);
+void cuda_conv_options(Size light, Size heuristic, Size force);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////

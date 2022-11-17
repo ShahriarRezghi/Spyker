@@ -82,9 +82,19 @@ void cudaCachePrint(Size device)
     Core::cuda_cache_print(device);
 }
 
-void lightConv(bool light)
+void cudaConvLight(bool light)
 {
-    if (cudaAvailable()) Core::cuda_light_conv(light);
+    if (cudaAvailable()) Core::cuda_conv_options(light, -1, -1);
+}
+
+void cudaConvHeuristic(bool heuristic)
+{
+    if (cudaAvailable()) Core::cuda_conv_options(-1, heuristic, -1);
+}
+
+void cudaConvForce(bool force)
+{
+    if (cudaAvailable()) Core::cuda_conv_options(-1, 1, force);
 }
 
 std::vector<Device> allDevices() { return Core::devices(); }

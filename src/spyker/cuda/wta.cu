@@ -20,19 +20,19 @@ __global__ void select(Cize Y, Cize X, PTR(T, input), PTR(S, temp))
 }
 
 template <typename T>
-__global__ void select(Cize Y, Cize X, PTR(T, id), PTR(T, od), PTR(T, max), T thresh)
+__global__ void select(Cize Y, Cize X, PTR(T, id), PTR(T, od), PTR(T, min), PTR(T, max), T thresh)
 {
     id += blockIdx.y * Y * X, od += blockIdx.y * X;
     Cize j = Index1;
     if (X <= j) return;
 
     T value = Limits<T>::min();
-    T maximum = max[blockIdx.y] * T(2);
+    T minim = min[blockIdx.y], diff = (max[blockIdx.y] - minim) * T(2);
     for (Cize i = Y - 1; i >= 0; --i)
     {
         Cize idx = i * X + j;
-        auto top = maximum * T(Y - i - 1);
-        if (id[idx] > thresh) value = id[idx] + top;
+        T level = T(Y - i - 1);
+        if (id[idx] > thresh) value = level + (id[idx] - minim) / diff;
     }
     od[j] = value;
 }
@@ -49,10 +49,12 @@ struct Sum<T, typename std::enable_if<std::is_floating_point<T>::value ||  //
 
     static void select(Vec3<T> input, Vec2<T> temp, T threshold)
     {
-        auto max_ = init<T>(input.z, maxsize<T>(input(0).size()));
-        auto max = maxval(Vec2<T>(input.data, input.z, input(0).size()), max_.data);
-        CUDA::select<<<Config1(1, input.z, input.x)>>>(input.y, input.x, input.data, temp.data, max.data, threshold);
-        deinit(max_);
+        auto value = init<T>(2, input.z, maxsize<T>(input(0).size()));
+        auto min = minval(Vec2<T>(input.data, input.z, input(0).size()), value(0).data);
+        auto max = maxval(Vec2<T>(input.data, input.z, input(0).size()), value(1).data);
+        CUDA::select<<<Config1(1, input.z, input.x)>>>(  //
+            input.y, input.x, input.data, temp.data, min.data, max.data, threshold);
+        deinit(value);
     }
 };
 template <typename T>
@@ -60,8 +62,7 @@ struct Sum<T, typename std::enable_if<std::is_integral<T>::value>::type>
 {
     using Type = U16;
 
-    template <typename S>
-    static void select(Vec3<T> input, Vec2<S> temp, T)
+    static void select(Vec3<T> input, Vec2<Type> temp, T)
     {
         CUDA::select<<<Config1(1, input.z, input.x)>>>(input.y, input.x, input.data, temp.data);
     }
