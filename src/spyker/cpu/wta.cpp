@@ -20,14 +20,16 @@ struct Sum<T, typename std::enable_if<std::is_floating_point<T>::value || std::i
     {
         VEC2(T, input) VEC1(T, temp);
 
-        T max = maxval(input) * T(2);
+        auto pair = minmax(input);
+        T min = pair.first, diff = (pair.second - min) * T(2);
         fill(temp, Limits<T>::min());
+
         for (Size i = input.y - 1; i >= 0; --i)
         {
             T *id = input(i, 0);
-            T top = T(max * (input.y - i - 1));
+            T level = T(input.y - i - 1);
             for (Size j = 0; j < input.x; ++j)
-                if (id[j] > threshold) temp(j) = id[j] + top;
+                if (id[j] > threshold) temp(j) = level + (id[j] - min) / diff;
         }
     }
 };
@@ -44,8 +46,8 @@ struct Sum<T, typename std::enable_if<std::is_integral<T>::value>::type>
         fill(temp, S(0));
         for (Size i = input.y - 1; i >= 0; --i)
         {
-            S time = input.y - i;
             T *id = input(i, 0);
+            S time = input.y - i;
             for (Size j = 0; j < input.x; ++j)
                 if (id[j]) temp(j) = time;
         }

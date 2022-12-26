@@ -61,7 +61,7 @@ __global__ void rank_pool_(Cize IY, Cize IX, Cize OY, Cize OX, Cize KY, Cize KX,
     T value = Limits<T>::min();
     for (Cize i = 0; i < KY; ++i)
         for (Cize j = 0; j < KX; ++j)  //
-            value = max(value, input[(y * SY + i) * IX + (x * SX + j)]);
+            value = cmax(value, input[(y * SY + i) * IX + (x * SX + j)]);
     output[y * OX + x] = value;
 }
 
@@ -200,7 +200,7 @@ void cuda_rank_pool(Dyn4 input, Dyn4 output, Len2 kernel, Len2 stride, Len4 pad)
     else if (input.type == Type::U8)
         CUDA::rank_pool<U8>(input, output, kernel, stride, pad);
     else if (input.type == Type::F16)
-        CUDA::rank_pool<F16>(input, output, kernel, stride, pad);
+        CUDA::rank_pool<C16>(input, output, kernel, stride, pad);
     else if (input.type == Type::F32)
         CUDA::rank_pool<F32>(input, output, kernel, stride, pad);
     else if (input.type == Type::F64)

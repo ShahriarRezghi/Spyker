@@ -202,6 +202,14 @@ Size cuda_current_device()
     return current_device;
 }
 
+float cuda_current_arch()
+{
+    if (current_device < 0) return -1;
+    cudaDeviceProp prop;
+    CudaCheck(cudaGetDeviceProperties(&prop, current_device));
+    return prop.major + prop.minor / 10.f;
+}
+
 void *pinned_alloc(Size size)
 {
     void *data;

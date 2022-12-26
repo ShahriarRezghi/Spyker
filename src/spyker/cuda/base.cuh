@@ -330,7 +330,7 @@ struct C16
 
 inline __device__ C16 cmax(C16 first, C16 second)
 {
-#if __CUDA_ARCH__ >= 700
+#if __CUDA_ARCH__ >= 800
     return __hmax(first.data, second.data);
 #else
     return max(F32(first), F32(second));
@@ -338,7 +338,7 @@ inline __device__ C16 cmax(C16 first, C16 second)
 }
 inline __device__ C16 cmin(C16 first, C16 second)
 {
-#if __CUDA_ARCH__ >= 700
+#if __CUDA_ARCH__ >= 800
     return __hmin(first.data, second.data);
 #else
     return min(F32(first), F32(second));

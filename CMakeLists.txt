@@ -43,7 +43,7 @@ set(CUDA_ARCH_LIST "" CACHE STRING "List of CUDA Architectures to generate code 
 option(ENABLE_PYTHON "Build with Python module support" ON)
 option(ENABLE_CUDA "Build the library with CUDA support" ON)
 option(ENABLE_CUDNN "Build the library with CUDNN Support" ON)
-option(ENABLE_DNNL "Build the library with DNNL Support" ON)
+option(ENABLE_DNNL "Build the library with DNNL Support" OFF)
 option(ENABLE_BLAS "Build the library with BLAS support" ON)
 option(ENABLE_EXAMPLES "Build examples for the library" ON)
 option(ENABLE_TESTS "Build tests for the library" ON)
@@ -93,6 +93,7 @@ endif()
 string(REPLACE " " ";" OPTIM_FLAGS "${OPTIM_FLAGS}")
 string(REPLACE " " ";" CUDA_ARCH_LIST "${CUDA_ARCH_LIST}")
 
+# CUDA
 if(ENABLE_CUDA)
     include(CheckLanguage)
     check_language(CUDA)
@@ -145,6 +146,7 @@ if(ENABLE_CUDA)
     endif()
 endif()
 
+# cuDNN
 if(CUDA_ENABLED AND ENABLE_CUDNN)
     find_package(CUDNN)
 
@@ -217,6 +219,8 @@ endif()
 
 # Examples
 if(ENABLE_EXAMPLES)
+    # add_executable(play play/play.cpp)
+    # target_link_libraries(play PUBLIC spyker)
 endif()
 
 # Summary

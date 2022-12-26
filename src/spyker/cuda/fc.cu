@@ -36,7 +36,7 @@ void _fc(Vec3<T> input, Vec2<T> kernel, Vec3<T> output)
 {
     matmul(input.data, kernel.data, output.data, false, true, input.z * input.y, input.x, kernel.y, kernel.x);
 }
-void _fc(Vec3<F16> input, Vec2<F16> kernel, Vec3<F16> output)
+void _fc(Vec3<C16> input, Vec2<C16> kernel, Vec3<C16> output)
 {
     SpykerAssert(false, "CUDA::FC", "F16 is not supported with BLAS.");
 }
@@ -46,7 +46,7 @@ void fc(Vec3<T> input, Vec2<T> kernel, Vec3<T> output)
 {
     auto temp = init<T>(input.z, input.y, input.x);
     copy(input, temp);
-    fc(temp, kernel, output);
+    _fc(temp, kernel, output);
     deinit(temp);
 }
 }  // namespace CUDA
