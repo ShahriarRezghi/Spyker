@@ -18,11 +18,11 @@ You can see the documentation for the C++ and Python interfaces [here](https://s
 # Tutorials
 You can take a look at the tutorials listed below to learn how to use the library.
 
-+ [Tutorial 1: Spyker and PyTorch](tutorial/tutorial-1.ipynb)
-+ [Tutorial 2: Spyker and Numpy](tutorial/tutorial-2.ipynb)
-+ [Tutorial 3: Sparse Spyker](tutorial/tutorial-3.ipynb)
-+ [Tutorial 4: Other Functionalities](tutorial/tutorial-4.ipynb)
-+ [Tutorial 5: Rate Coding](tutorial/tutorial-5.ipynb)
++ [Tutorial 1: Spyker and PyTorch](tutorial/spyker_and_pytorch.ipynb)
++ [Tutorial 2: Spyker and Numpy](tutorial/spyker_and_numpy.ipynb)
++ [Tutorial 3: Sparse Spyker](tutorial/sparse_spyker.ipynb)
++ [Tutorial 4: Other Functionalities](tutorial/other_functionalities.ipynb)
++ [Tutorial 5: Rate Coding](tutorial/rate_coding.ipynb)
 
 # Contribution
 You can report bugs and request featues on the [issues page](../../issues).
