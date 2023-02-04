@@ -56,7 +56,7 @@ Type str2type(std::string type)
 std::string type2str(Type type)
 {
     if (type == Type::I8) return "i8";
-    if (type == Type::I16) return "i6";
+    if (type == Type::I16) return "i16";
     if (type == Type::I32) return "i32";
     if (type == Type::I64) return "i64";
     if (type == Type::U8) return "u8";
@@ -231,17 +231,17 @@ PYBIND11_MODULE(spyker_plugin, m)
     py::class_<STDPConfig>(m, "STDPConfig")
         .def(py::init<F64, F64, bool, F64, F64>())
         .def_readwrite("stabilize", &STDPConfig::stabilize)
-        .def_readwrite("pos", &STDPConfig::pos)
-        .def_readwrite("neg", &STDPConfig::neg)
-        .def_readwrite("low", &STDPConfig::low)
-        .def_readwrite("high", &STDPConfig::high);
+        .def_readwrite("positive", &STDPConfig::positive)
+        .def_readwrite("negative", &STDPConfig::negative)
+        .def_readwrite("lower", &STDPConfig::lower)
+        .def_readwrite("upper", &STDPConfig::upper);
 
     py::class_<BPConfig>(m, "BPConfig")
         .def(py::init<F64, F64, F64, F64>())
         .def_readwrite("sfactor", &BPConfig::sfactor)
         .def_readwrite("lrate", &BPConfig::lrate)
         .def_readwrite("lrf", &BPConfig::lrf)
-        .def_readwrite("lambda_", &BPConfig::lambda);
+        .def_readwrite("lamda", &BPConfig::lambda);
 
     py::class_<ZCA>(m, "ZCA")
         .def(py::init())

@@ -506,21 +506,21 @@ using Winners = std::vector<std::vector<Winner>>;
 /// STDP configuration parameters container.
 struct SpykerExport STDPConfig
 {
+    /// Positive learning rate.
+    F64 positive;
+    /// Negative learning rate.
+    F64 negative;
     /// Stabilization.
     bool stabilize;
-    /// Positive learning rate.
-    F64 pos;
-    /// Negative learning rate.
-    F64 neg;
     /// Lower bound of the weights.
-    F64 low;
+    F64 lower;
     /// Upper bound of the weights.
-    F64 high;
+    F64 upper;
 
     inline STDPConfig() {}
 
-    inline STDPConfig(F64 pos, F64 neg, bool stabilize = true, F64 low = 0, F64 high = 1)
-        : stabilize(stabilize), pos(pos), neg(neg), low(low), high(high)
+    inline STDPConfig(F64 positive, F64 negative, bool stabilize = true, F64 lower = 0, F64 upper = 1)
+        : stabilize(stabilize), positive(positive), negative(negative), lower(lower), upper(upper)
     {
     }
 };

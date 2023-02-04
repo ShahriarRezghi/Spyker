@@ -42,9 +42,9 @@ void rank_fcstdp(ARG1(U16, isum), U16 osum, ARG1(K, kernel), STDPConfig stdp)
     for (Size i = 0; i < kernel.x; ++i)
     {
         F64 old = kd[i];
-        F64 value = (stdp.stabilize ? (old - stdp.low) * (stdp.high - old) : 1);
-        value = old + (isum(i) <= osum ? stdp.pos : stdp.neg) * value;
-        kd[i] = std::max(stdp.low, std::min(value, stdp.high));
+        F64 value = (stdp.stabilize ? (old - stdp.lower) * (stdp.upper - old) : 1);
+        value = old + (isum(i) <= osum ? stdp.positive : stdp.negative) * value;
+        kd[i] = std::max(stdp.lower, std::min(value, stdp.upper));
     }
 }
 
@@ -100,9 +100,9 @@ void rank_convstdp(ARG3(U16, sum), U16 osum, ARG3(K, kernel), STDPConfig stdp)
     for (Size i = 0; i < size; ++i)
     {
         F64 old = kd[i];
-        F64 value = (stdp.stabilize ? (old - stdp.low) * (stdp.high - old) : 1);
-        value = old + (isum[i] <= osum ? stdp.pos : stdp.neg) * value;
-        kd[i] = std::max(stdp.low, std::min(value, stdp.high));
+        F64 value = (stdp.stabilize ? (old - stdp.lower) * (stdp.upper - old) : 1);
+        value = old + (isum[i] <= osum ? stdp.positive : stdp.negative) * value;
+        kd[i] = std::max(stdp.lower, std::min(value, stdp.upper));
     }
 }
 

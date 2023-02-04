@@ -43,7 +43,7 @@ set(CUDA_ARCH_LIST "" CACHE STRING "List of CUDA Architectures to generate code 
 option(ENABLE_PYTHON "Build with Python module support" ON)
 option(ENABLE_CUDA "Build the library with CUDA support" ON)
 option(ENABLE_CUDNN "Build the library with CUDNN Support" ON)
-option(ENABLE_DNNL "Build the library with DNNL Support" OFF)
+option(ENABLE_DNNL "Build the library with DNNL Support" ON)
 option(ENABLE_BLAS "Build the library with BLAS support" ON)
 option(ENABLE_EXAMPLES "Build examples for the library" ON)
 option(ENABLE_TESTS "Build tests for the library" ON)

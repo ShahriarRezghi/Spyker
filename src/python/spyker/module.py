@@ -70,35 +70,35 @@ class STDPConfig(impl.STDPConfig):
 
     Attributes
     ----------
-    pos : float
+    positive : float
         Positive learning rate
-    neg : float
+    negative : float
         Negative learning rate
     stabilize : bool
         Stabilization
-    low : float
+    lower : float
         Lower bound of the weights
-    high : float
+    upper : float
         Upper bound of the weights
     """
 
-    def __init__(self, pos, neg, stabilize=True, low=0, high=1):
+    def __init__(self, positive, negative, stabilize=True, lower=0, upper=1):
         """
         Parameters
         ----------
-        pos : float
+        positive : float
             Positive learning rate
-        neg : float
+        negative : float
             Negative learning rate
         stabilize : bool, optional
             Stabilization (default True)
-        low : float, optional
+        lower : float, optional
             Lower bound of the weights (default 0.0)
-        high : float, optional
+        upper : float, optional
             Upper bound of the weights (default 1.0)
         """
 
-        super().__init__(pos, neg, stabilize, low, high)
+        super().__init__(positive, negative, stabilize, lower, upper)
 
 
 class BPConfig(impl.BPConfig):
@@ -130,13 +130,13 @@ class ZCA(impl.ZCA):
     def __init__(self):
         super().__init__()
 
-    def fit(self, input, epsilon, transform=False):
+    def fit(self, array, epsilon, transform=False):
         """
         Fit the input data
 
         Parameters
         ----------
-        input : spyker.tensor or torch.tensor or numpy.ndarray
+        array : spyker.tensor or torch.tensor or numpy.ndarray
             Input data to be fitted to
         epsilon : float
             Epsilon parameter of the trnasformation
@@ -149,10 +149,10 @@ class ZCA(impl.ZCA):
             this class
         """
 
-        self._fit(wrap(input), epsilon, transform)
+        self._fit(wrap(array), epsilon, transform)
         return self
 
-    def __call__(self, *input, inplace=True):
+    def __call__(self, *array, inplace=True):
         """
         Transform the input data
 
@@ -169,18 +169,18 @@ class ZCA(impl.ZCA):
             Transformed data
         """
 
-        if not inplace: input = [copy(x) for x in input]
-        [self._forward(wrap(x)) for x in input]
-        return tuple(input) if len(input) > 1 else input[0]
+        if not inplace: array = [copy(x) for x in array]
+        [self._forward(wrap(x)) for x in array]
+        return tuple(array) if len(array) > 1 else array[0]
 
     @staticmethod
-    def split(input):
+    def split(array):
         """
         Split ZCA transformed data into two positive and negative channels
 
         Parameters
         ----------
-        input : spyker.tensor or torch.tensor or numpy.ndarray
+        array : spyker.tensor or torch.tensor or numpy.ndarray
             Input data to be splitted
 
         Returns
@@ -189,9 +189,9 @@ class ZCA(impl.ZCA):
             splitted data
         """
 
-        input_ = least2(wrap(input))
+        input_ = least2(wrap(array))
         shape = impl.shape.zca_split(input_.shape)
-        output = create(input, input_.dtype, shape)
+        output = create(array, input_.dtype, shape)
         impl.ZCA._split(input_, wrap(output))
         return output
 
@@ -239,13 +239,13 @@ class DoG(impl.DoG):
         Apply the filter on the input
     """
 
-    def __init__(self, size, filter, pad=0, device=impl.device('cpu'), dtype='f32'):
+    def __init__(self, size, filters, pad=0, device=impl.device('cpu'), dtype='f32'):
         """
         Parameters
         ----------
         size : int
             Half size of the window. full size of the window is 2 * size + 1
-        filter : spyker.DoGFilter or list of 'spyker.DoGFilter's
+        filters : spyker.DoGFilter or list of 'spyker.DoGFilter's
             List of filters to be applied
         pad : int or list of 2 ints or list of 4 ints, optional
             Padding size of the input (default 0)
@@ -254,18 +254,18 @@ class DoG(impl.DoG):
         """
 
         pad = expand4(pad)
-        if isinstance(filter, DoGFilter): filter = [filter]
-        super().__init__(device, size, filter, pad, dtype)
+        if isinstance(filters, DoGFilter): filters = [filters]
+        super().__init__(device, size, filters, pad, dtype)
         self.device = device
         self.pad = pad
 
-    def __call__(self, input):
+    def __call__(self, array):
         """
         Apply the filter on the input
 
         Parameters
         ----------
-        input : spyker.tensor or torch.tensor or numpy.ndarray
+        array : spyker.tensor or torch.tensor or numpy.ndarray
             Input tensor to be processed
 
         Returns
@@ -274,9 +274,9 @@ class DoG(impl.DoG):
             Filtered output tensor
         """
 
-        input_ = to4(wrap(input))
+        input_ = to4(wrap(array))
         shape = impl.shape.dog(input_.shape, self.kernel.shape, self.pad)
-        output = create(input, self.kernel.dtype, shape)
+        output = create(array, self.kernel.dtype, shape)
         self._forward(input_, wrap(output))
         return output
 
@@ -296,13 +296,13 @@ class Gabor(impl.Gabor):
         Apply the filter on the input
     """
 
-    def __init__(self, size, filter, pad=0, device=impl.device('cpu'), dtype='f32'):
+    def __init__(self, size, filters, pad=0, device=impl.device('cpu'), dtype='f32'):
         """
         Parameters
         ----------
         size : int
             Half size of the window. full size of the window is 2 * size + 1
-        filter : spyker.GaborFilter or list of 'spyker.GaborFilter's
+        filters : spyker.GaborFilter or list of 'spyker.GaborFilter's
             List of filters to be applied
         pad : int or list of 2 ints or list of 4 ints, optional
             Padding size of the input (default 0)
@@ -311,18 +311,18 @@ class Gabor(impl.Gabor):
         """
 
         pad = expand4(pad)
-        if isinstance(filter, GaborFilter): filter = [filter]
-        super().__init__(device, size, filter, pad, dtype)
+        if isinstance(filters, GaborFilter): filters = [filters]
+        super().__init__(device, size, filters, pad, dtype)
         self.device = device
         self.pad = pad
 
-    def __call__(self, input):
+    def __call__(self, array):
         """
         Apply the filter on the input
 
         Parameters
         ----------
-        input : spyker.tensor or torch.tensor or numpy.ndarray
+        array : spyker.tensor or torch.tensor or numpy.ndarray
             Input tensor to be processed
 
         Returns
@@ -331,9 +331,9 @@ class Gabor(impl.Gabor):
             Filtered output tensor
         """
 
-        input_ = to4(wrap(input))
+        input_ = to4(wrap(array))
         shape = impl.shape.gabor(input_.shape, self.kernel.shape, self.pad)
-        output = create(input, self.kernel.dtype, shape)
+        output = create(array, self.kernel.dtype, shape)
         self._forward(input_, wrap(output))
         return output
 
@@ -353,13 +353,13 @@ class LoG(impl.LoG):
         Apply the filter on the input
     """
 
-    def __init__(self, size, std, pad=0, device=impl.device('cpu'), dtype='f32'):
+    def __init__(self, size, stds, pad=0, device=impl.device('cpu'), dtype='f32'):
         """
         Parameters
         ----------
         size : int
             Half size of the window. full size of the window is 2 * size + 1
-        std : list of floats
+        stds : list of floats
             List of stds of LoG filters to be applied
         pad : int or list of 2 ints or list of 4 ints, optional
             Padding size of the input (default 0)
@@ -368,17 +368,17 @@ class LoG(impl.LoG):
         """
 
         pad = expand4(pad)
-        super().__init__(device, size, std, pad, dtype)
+        super().__init__(device, size, stds, pad, dtype)
         self.device = device
         self.pad = pad
 
-    def __call__(self, input):
+    def __call__(self, array):
         """
         Apply the filter on the input
 
         Parameters
         ----------
-        input : spyker.tensor or torch.tensor or numpy.ndarray
+        array : spyker.tensor or torch.tensor or numpy.ndarray
             Input tensor to be processed
 
         Returns
@@ -387,9 +387,9 @@ class LoG(impl.LoG):
             Filtered output tensor
         """
 
-        input_ = to4(wrap(input))
+        input_ = to4(wrap(array))
         shape = impl.shape.log(input_.shape, self.kernel.shape, self.pad)
-        output = create(input, self.kernel.dtype, shape)
+        output = create(array, self.kernel.dtype, shape)
         self._forward(input_, wrap(output))
         return output
 
@@ -409,17 +409,17 @@ class FC(impl.FC):
     -------
     __call__(input)
         Apply the fully connected on the input
-    stdp(input, winners, output)
+    stdp(array, winners, output)
         Apply the STDP on the fully connected
     """
 
-    def __init__(self, input, output, mean=.5, std=.02, device=impl.device('cpu'), dtype='f32'):
+    def __init__(self, insize, outsize, mean=.5, std=.02, device=impl.device('cpu'), dtype='f32'):
         """
         Parameters
         ----------
-        input : int
+        insize : int
             Dimensions of the input signal
-        output : int
+        outsize : int
             Dimensions of the output signal
         mean : float, optional
             Mean of the random normal variable that initializes the kernel (default 0.5)
@@ -427,16 +427,16 @@ class FC(impl.FC):
             Standard deviation of the random normal variable that initializes the kernel (default 0.02)
         """
 
-        super().__init__(device, input, output, mean, std, dtype)
+        super().__init__(device, insize, outsize, mean, std, dtype)
         self.device = device
     
-    def __call__(self, input, sign=False):
+    def __call__(self, array, sign=False):
         """
         Apply the fully connected on the input
 
         Parameters
         ----------
-        input : spyker.tensor or torch.tensor or numpy.ndarray
+        array : spyker.tensor or torch.tensor or numpy.ndarray
             Input dense tensor to be processed
 
         Returns
@@ -445,19 +445,19 @@ class FC(impl.FC):
             Output dense tensor to be written to
         """
 
-        input_ = to3(wrap(input))
+        input_ = to3(wrap(array))
         shape = impl.shape.fc(input_.shape, self.kernel.shape)
-        output = create(input, self.kernel.dtype, shape)
+        output = create(array, self.kernel.dtype, shape)
         self._forward(input_, wrap(output), sign)
         return output
 
-    def stdp(self, input, winners, output):
+    def stdp(self, array, winners, output):
         """
         Apply the STDP on the fully connected
 
         Parameters
         ----------
-        input : spyker.tensor or torch.tensor or numpy.ndarray
+        array : spyker.tensor or torch.tensor or numpy.ndarray
             Fully connected input dense tensor
         winners : list of list of 'spyker.Winner's
             Winner neurons that are selected for updating
@@ -465,10 +465,10 @@ class FC(impl.FC):
             Fully connected output dense tensor
         """
 
-        self._stdp(wrap(input), winners, wrap(output))
+        self._stdp(wrap(array), winners, wrap(output))
 
-    def backward(self, input, output, grad):
-        input_, grad_ = to2(wrap(input)), to2(wrap(grad))
+    def backward(self, array, output, grad):
+        input_, grad_ = to2(wrap(array)), to2(wrap(grad))
         next = create(grad, grad_.dtype, input_.shape)
         self._backward(input_, wrap(output), grad_, wrap(next))
         return next
@@ -491,13 +491,13 @@ class Conv(impl.Conv):
         Apply the convolution on the input
     """
 
-    def __init__(self, input, output, kernel, stride=1, pad=0, mean=.5, std=.02, device=impl.device('cpu'), dtype='f32'):
+    def __init__(self, insize, outsize, kernel, stride=1, pad=0, mean=.5, std=.02, device=impl.device('cpu'), dtype='f32'):
         """
         Parameters
         ----------
-        input : int
+        insize : int
             Channels of the input signal
-        output : int
+        outsize : int
             Channels of the output signal
         kernel : int or list of 2 ints
             Kernel size of the convolution
@@ -517,18 +517,18 @@ class Conv(impl.Conv):
         stride = expand2(stride)
         pad = expand4(pad)
 
-        super().__init__(device, input, output, kernel, stride, pad, mean, std, dtype)
+        super().__init__(device, insize, outsize, kernel, stride, pad, mean, std, dtype)
         self.device = device
         self.stride = stride
         self.pad = pad
 
-    def __call__(self, input, threshold=None):
+    def __call__(self, array, threshold=None):
         """
         Apply the convolution on the input
 
         Parameters
         ----------
-        input : spyker.tensor or torch.tensor or numpy.ndarray
+        array : spyker.tensor or torch.tensor or numpy.ndarray
             Input tensor to be processed
 
         Returns
@@ -538,21 +538,21 @@ class Conv(impl.Conv):
         """
 
         if threshold is not None:
-            return self._forward(input, threshold)
+            return self._forward(array, threshold)
 
-        input_ = to5(wrap(input))
+        input_ = to5(wrap(array))
         shape = impl.shape.conv(input_.shape, self.kernel.shape, self.stride, self.pad)
-        output = create(input, self.kernel.dtype, shape)
+        output = create(array, self.kernel.dtype, shape)
         self._forward(input_, wrap(output))
         return output
 
-    def stdp(self, input, winners, output=None):
+    def stdp(self, array, winners, output=None):
         """
         Apply STDP to update the weights of convolution
 
         Parameters
         ----------
-        input : spyker.tensor or torch.tensor or numpy.ndarray
+        array : spyker.tensor or torch.tensor or numpy.ndarray
             Convolution input dense tensor
         winners : list of list of 'spyker.Winner's
             Winner neurons that are selected for updating
@@ -561,18 +561,18 @@ class Conv(impl.Conv):
         """
 
         if output is None:
-            self._stdp(input, winners)
+            self._stdp(array, winners)
         else:
-            self._stdp(wrap(input), winners, wrap(output))
+            self._stdp(wrap(array), winners, wrap(output))
 
 
-def canny(input, low, high):
+def canny(array, low, high):
     """
     Apply Canny edge detection
 
     Parameters
     ----------
-    input : spyker.tensor or torch.tensor or numpy.ndarray
+    array : spyker.tensor or torch.tensor or numpy.ndarray
         Edge detection input dense tensor
     low : float
         Threshold for weak edges
@@ -585,19 +585,19 @@ def canny(input, low, high):
         Edge detection output tensor
     """
 
-    input_ = to4(wrap(input))
-    output = create(input, 'u8', input_.shape)
+    input_ = to4(wrap(array))
+    output = create(array, 'u8', input_.shape)
     impl.canny(input_, wrap(output), low, high)
     return output
 
 
-def fc(input, kernel, sign=False):
+def fc(array, kernel, sign=False):
     """
     Apply fully connected operation
 
     Parameters
     ----------
-    input : spyker.tensor or torch.tensor or numpy.ndarray
+    array : spyker.tensor or torch.tensor or numpy.ndarray
         Fully connected input dense tensor
     kernel : spyker.tensor or torch.tensor or numpy.ndarray
         Fully connected kernel dense tensor
@@ -608,21 +608,21 @@ def fc(input, kernel, sign=False):
         Fully connected output dense tensor
     """
 
-    input_ = to3(wrap(input))
+    input_ = to3(wrap(array))
     kernel_ = wrap(kernel)
     shape = impl.shape.fc(input_.shape, kernel_.shape)
-    output = create(input, kernel_.dtype, shape)
+    output = create(array, kernel_.dtype, shape)
     impl.fc(input_, kernel_, wrap(output), sign)
     return output
 
 
-def conv(input, kernel, stride=1, pad=0):
+def conv(array, kernel, stride=1, pad=0):
     """
     Apply 2D convolution
 
     Parameters
     ----------
-    input : spyker.tensor or torch.tensor or numpy.ndarray or spyker.Sparse
+    array : spyker.tensor or torch.tensor or numpy.ndarray or spyker.Sparse
         Convolution input dense tensor
     kernel : spyker.tensor or torch.tensor or numpy.ndarray
         Convolution kernel dense tensor
@@ -641,20 +641,20 @@ def conv(input, kernel, stride=1, pad=0):
     stride = expand2(stride)
     pad = expand4(pad)
 
-    input_ = to5(wrap(input))
+    input_ = to5(wrap(array))
     shape = impl.shape.conv(input_.shape, kernel_.shape, stride, pad)
-    output = create(input, kernel_.dtype, shape)
+    output = create(array, kernel_.dtype, shape)
     impl.conv(input_, kernel_, wrap(output), stride, pad)
     return output
 
 
-def pad(input, pad, value=0):
+def pad(array, pad, value=0):
     """
     2D padding
 
     Parameters
     ----------
-    input : spyker.tensor or torch.tensor or numpy.ndarray or spyker.Sparse
+    array : spyker.tensor or torch.tensor or numpy.ndarray or spyker.Sparse
         Input dense tensor
     pad : int or list of 2 ints or list of 4 ints, optional
         Padding size of the input (default 0)
@@ -669,20 +669,20 @@ def pad(input, pad, value=0):
     
     pad = expand4(pad)
     
-    input_ = to5(wrap(input))
+    input_ = to5(wrap(array))
     shape = impl.shape.pad(input_.shape, pad)
-    output = create(input, input_.dtype, shape)
+    output = create(array, input_.dtype, shape)
     impl.pad(input_, wrap(output), pad, value)
     return output
 
 
-def threshold(input, threshold, value=.0, inplace=True):
+def threshold(array, threshold, value=.0, inplace=True):
     """
     Apply thresholding
 
     Parameters
     ----------
-    input : spyker.tensor or torch.tensor or numpy.ndarray
+    array : spyker.tensor or torch.tensor or numpy.ndarray
         Input tensor
     threshold : float
         Threshold of firing
@@ -697,12 +697,12 @@ def threshold(input, threshold, value=.0, inplace=True):
         If inplace input tensor, otherwise output tensor
     """
 
-    if not inplace: input = copy(input)
-    impl.threshold(wrap(input, write=True), threshold, value)
-    return input
+    if not inplace: array = copy(array)
+    impl.threshold(wrap(array, write=True), threshold, value)
+    return array
 
 
-def quantize(input, lower, middle, upper, inplace=True):
+def quantize(array, lower, middle, upper, inplace=True):
     """
     Quantize input
 
@@ -710,7 +710,7 @@ def quantize(input, lower, middle, upper, inplace=True):
 
     Parameters
     ----------
-    input : spyker.tensor or torch.tensor or numpy.ndarray
+    array : spyker.tensor or torch.tensor or numpy.ndarray
         Input dense tensor to be quantized
     lower : float
         Lower value to be set
@@ -727,18 +727,18 @@ def quantize(input, lower, middle, upper, inplace=True):
         If inplace input tensor, otherwise output tensor
     """
 
-    if not inplace: input = copy(input)
-    impl.quantize(wrap(input, write=True), lower, middle, upper)
-    return input
+    if not inplace: array = copy(array)
+    impl.quantize(wrap(array, write=True), lower, middle, upper)
+    return array
 
 
-def code(input, time, sort=True, dtype='u8', code='rank'):
+def code(array, time, sort=True, dtype='u8', code='rank'):
     """
     Apply rank coding
 
     Parameters
     ----------
-    input : spyker.tensor or torch.tensor or numpy.ndarray
+    array : spyker.tensor or torch.tensor or numpy.ndarray
         Input dense tensor
     time : int
         Number of time steps
@@ -751,20 +751,20 @@ def code(input, time, sort=True, dtype='u8', code='rank'):
         Rank coding output tensor
     """
 
-    input_ = least2(wrap(input))
+    input_ = least2(wrap(array))
     shape = impl.shape.code(input_.shape, time)
-    output = create(input, dtype, shape)
+    output = create(array, dtype, shape)
     impl.code(input_, wrap(output), time, sort, code)
     return output
 
 
-def infinite(input, value=.0, inplace=True):
+def infinite(array, value=.0, inplace=True):
     """
     Apply infinite thresholding
 
     Parameters
     ----------
-    input : spyker.tensor or torch.tensor or numpy.ndarray
+    array : spyker.tensor or torch.tensor or numpy.ndarray
         Input tensor
     value : float, optional
         value to replace (default 0.0)
@@ -777,13 +777,13 @@ def infinite(input, value=.0, inplace=True):
         The input tensor
     """
 
-    if not inplace: input = copy(input)
-    input_ = least3(wrap(input, write=True))
+    if not inplace: array = copy(array)
+    input_ = least3(wrap(array, write=True))
     impl.infinite(input_, value)
-    return input
+    return array
 
 
-def fire(input, threshold=.0, dtype='u8', code='rank'):
+def fire(array, threshold=.0, dtype='u8', code='rank'):
     """
     Apply integrate-and-fire mechanism
 
@@ -791,7 +791,7 @@ def fire(input, threshold=.0, dtype='u8', code='rank'):
 
     Parameters
     ----------
-    input : spyker.tensor or torch.tensor or numpy.ndarray
+    array : spyker.tensor or torch.tensor or numpy.ndarray
         Input tensor
     threshold : float, optional
         Threshold of firing (default 0)
@@ -804,13 +804,13 @@ def fire(input, threshold=.0, dtype='u8', code='rank'):
         Integrate-and-fire output tensor
     """
 
-    input_ = wrap(input)
-    output = create(input, dtype, input_.shape)
+    input_ = wrap(array)
+    output = create(array, dtype, input_.shape)
     impl.fire(input_, wrap(output), threshold, code)
     return output
 
 
-def gather(input, threshold=.0, dtype='u8', code='rank'):
+def gather(array, threshold=.0, dtype='u8', code='rank'):
     """
     Gather temporal information
 
@@ -818,7 +818,7 @@ def gather(input, threshold=.0, dtype='u8', code='rank'):
 
     Parameters
     ----------
-    input : spyker.tensor or torch.tensor or numpy.ndarray
+    array : spyker.tensor or torch.tensor or numpy.ndarray
         Input tensor
     threshold : float, optional
         Threshold of firing (default 0.0)
@@ -831,19 +831,19 @@ def gather(input, threshold=.0, dtype='u8', code='rank'):
         Gathered output tensor
     """
 
-    input_ = least3(wrap(input))
-    output = create(input, dtype, impl.shape.gather(input_.shape))
+    input_ = least3(wrap(array))
+    output = create(array, dtype, impl.shape.gather(input_.shape))
     impl.gather(input_, wrap(output), threshold, code)
     return output
 
 
-def scatter(input, time, dtype='u8'):
+def scatter(array, time, dtype='u8'):
     """
     Scatter temporal information
 
     Parameters
     ----------
-    input : spyker.tensor or torch.tensor or numpy.ndarray
+    array : spyker.tensor or torch.tensor or numpy.ndarray
         Input tensor
     time : int
         Number of time steps to scatter the input to
@@ -856,19 +856,19 @@ def scatter(input, time, dtype='u8'):
         Scattered output tensor
     """
 
-    input_ = least2(wrap(input))
-    output = create(input, dtype, impl.shape.scatter(input_.shape, time))
+    input_ = least2(wrap(array))
+    output = create(array, dtype, impl.shape.scatter(input_.shape, time))
     impl.scatter(input_, wrap(output))
     return output
 
 
-def pool(input, kernel, stride=None, pad=0, rates=None):
+def pool(array, kernel, stride=None, pad=0, rates=None):
     """
     Apply 2D max pooling
 
     Parameters
     ----------
-    input : spyker.Tensor or torch.tensor or numpy.ndarray or spyker.Sparse
+    array : spyker.Tensor or torch.tensor or numpy.ndarray or spyker.Sparse
         Pooling input tensor
     kernel : int or list of 2 ints
         Kernel size of the pooling
@@ -889,15 +889,15 @@ def pool(input, kernel, stride=None, pad=0, rates=None):
     stride = expand2(stride)
     pad = expand4(pad)
 
-    input_ = to5(wrap(input))
+    input_ = to5(wrap(array))
     shape = impl.shape.pool(input_.shape, kernel, stride, pad)
-    output = create(input, input_.dtype, shape)
+    output = create(array, input_.dtype, shape)
     rates_ = impl.tensor() if rates is None else wrap(rates)
     impl.pool(input_, wrap(output), kernel, stride, pad, rates_)
     return output
 
 
-def inhibit(input, threshold=.0, inplace=True):
+def inhibit(array, threshold=.0, inplace=True):
     """
     Apply lateral Inhibition (inplace)
 
@@ -905,7 +905,7 @@ def inhibit(input, threshold=.0, inplace=True):
 
     Parameters
     ----------
-    input : spyker.Tensor or torch.tensor or numpy.ndarray or spyker.Sparse
+    array : spyker.Tensor or torch.tensor or numpy.ndarray or spyker.Sparse
         Input tensor
     threshold : float, optional
         Threshold of firing (default 0.0). Only used when input has type F32
@@ -918,16 +918,16 @@ def inhibit(input, threshold=.0, inplace=True):
         If inplace input tensor, otherwise output tensor
     """
 
-    if not inplace: input = copy(input)
-    impl.inhibit(wrap(input, write=True), threshold)
-    return input
+    if not inplace: array = copy(array)
+    impl.inhibit(wrap(array, write=True), threshold)
+    return array
 
 
-def fcwta(input, radius, count, threshold=.0):
-    return impl.fcwta(wrap(input), radius, count, threshold)
+def fcwta(array, radius, count, threshold=.0):
+    return impl.fcwta(wrap(array), radius, count, threshold)
 
 
-def convwta(input, radius, count, threshold=.0):
+def convwta(array, radius, count, threshold=.0):
     """
     Select winner neurons
 
@@ -935,7 +935,7 @@ def convwta(input, radius, count, threshold=.0):
 
     Parameters
     ----------
-    input : spyker.Tensor or torch.tensor or numpy.ndarray or spyker.Sparse
+    array : spyker.Tensor or torch.tensor or numpy.ndarray or spyker.Sparse
         Input tensor
     radius : int or list of 2 ints
         Radius of inhibition
@@ -949,22 +949,22 @@ def convwta(input, radius, count, threshold=.0):
     """
 
     radius = expand2(radius)
-    return impl.convwta(wrap(input), radius, count, threshold)
+    return impl.convwta(wrap(array), radius, count, threshold)
 
 
-def stdp(conv, input, winners, output):
-    impl.stdp(conv.impl, input, winners, output)
+def stdp(conv, array, winners, output):
+    impl.stdp(conv.impl, array, winners, output)
 
 
-def backward(input, target, time, gamma):
-    input_ = wrap(input)
-    output = create(input, input_.dtype, input_.shape)
+def backward(array, target, time, gamma):
+    input_ = wrap(array)
+    output = create(array, input_.dtype, input_.shape)
     impl.backward(input_, wrap(output), wrap(target), time, gamma)
     return output
 
 
-def labelize(input, threshold):
-    input_ = wrap(input)
-    output = create(input, 'i64', [input_.shape[0]])
+def labelize(array, threshold):
+    input_ = wrap(array)
+    output = create(array, 'i64', [input_.shape[0]])
     impl.labelize(input_, wrap(output), threshold)
     return output

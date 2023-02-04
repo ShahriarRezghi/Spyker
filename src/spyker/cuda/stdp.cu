@@ -45,9 +45,9 @@ __global__ void rank_fcstdp(Size size, PTR(U16, isum), PTR(U16, osum), PTR(K, ke
 
     F64 old = kernel[idx];
     bool dir = (isum[idx] <= osum[0]);
-    F64 value = (config.stabilize ? (old - config.low) * (config.high - old) : 1);
-    value = old + (dir ? config.pos : config.neg) * value;
-    kernel[idx] = max(config.low, min(value, config.high));
+    F64 value = (config.stabilize ? (old - config.lower) * (config.upper - old) : 1);
+    value = old + (dir ? config.positive : config.negative) * value;
+    kernel[idx] = max(config.lower, min(value, config.upper));
 }
 
 template <typename T>
@@ -117,9 +117,9 @@ __global__ void rank_convstdp(Len3 input, PTR(U16, id), PTR(U16, od), Len3 kerne
 
     F64 old = kd[0];
     bool dir = (id[(y + start.y) * input.x + (x + start.x)] <= od[0]);
-    F64 value = (config.stabilize ? (old - config.low) * (config.high - old) : 1);
-    value = old + (dir ? config.pos : config.neg) * value;
-    kd[0] = max(config.low, min(value, config.high));
+    F64 value = (config.stabilize ? (old - config.lower) * (config.upper - old) : 1);
+    value = old + (dir ? config.positive : config.negative) * value;
+    kd[0] = max(config.lower, min(value, config.upper));
 
     //    I32 diff = I32(id[(y + start.y) * input.x + (x + start.x)]) - I32(od[0]);
     //    F32 mult = diff <= 0 ? stdp.pos * expf(diff) : stdp.neg * expf(-diff);

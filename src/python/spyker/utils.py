@@ -39,10 +39,10 @@ def torch2device(device):
     raise TypeError(f'Given PyTorch tensor device {device} is not supported.')
 
 
-def wrap_torch(input):
-    if not input.is_contiguous():
+def wrap_torch(array):
+    if not array.is_contiguous():
         raise TypeError('Input array is not contiguous. use "contiguous" function to make it contiguous.')
-    return create_tensor(torch2device(input.device), torch2type(input.dtype), input.shape, data=input.data_ptr())
+    return create_tensor(torch2device(array.device), torch2type(array.dtype), array.shape, data=array.data_ptr())
 
 
 def numpy2type(dtype):
@@ -60,15 +60,15 @@ def numpy2type(dtype):
     raise TypeError('Given Numpy array data type {dtype} is not supported.')
 
 
-def wrap_numpy(input, write):
-    if not input.flags['C_CONTIGUOUS']:
+def wrap_numpy(array, write):
+    if not array.flags['C_CONTIGUOUS']:
         raise TypeError('Input array is not contiguous. use "numpy.ascontiguousarray" function to make it contiguous.')
 
-    if write and not input.flags['WRITEABLE']:
+    if write and not array.flags['WRITEABLE']:
         raise TypeError('Input array is not writable. use "numpy.array(..., copy=True)" to make it writable.')
 
-    ptr, _ = input.__array_interface__['data']
-    return create_tensor(impl.device('cpu'), numpy2type(input.dtype), input.shape, data=ptr)
+    ptr, _ = array.__array_interface__['data']
+    return create_tensor(impl.device('cpu'), numpy2type(array.dtype), array.shape, data=ptr)
 
 
 def type2torch(dtype):
@@ -93,8 +93,8 @@ def device2torch(device):
     raise TypeError(f'Given device {device} is not supported by PyTorch.')
 
 
-def create_torch(input, dtype, shape):
-    return torch.zeros(shape, dtype=type2torch(dtype), device=input.device)
+def create_torch(array, dtype, shape):
+    return torch.zeros(shape, dtype=type2torch(dtype), device=array.device)
 
 
 def type_numpy(dtype):
@@ -113,60 +113,60 @@ def type_numpy(dtype):
     raise TypeError(f'Given data type {dtype} is not supported by Numpy.')
 
 
-def create_numpy(input, dtype, shape):
+def create_numpy(array, dtype, shape):
     return np.zeros(shape, dtype=type_numpy(dtype))
 
 
-def wrap(input, write=False):
-    if torch_avail and torch.is_tensor(input):
-        return wrap_torch(input)
+def wrap(array, write=False):
+    if torch_avail and torch.is_tensor(array):
+        return wrap_torch(array)
 
-    if numpy_avail and type(input) is np.ndarray:
-        return wrap_numpy(input, write)
+    if numpy_avail and type(array) is np.ndarray:
+        return wrap_numpy(array, write)
 
-    if type(input) is impl.tensor: return input
+    if type(array) is impl.tensor: return array
 
-    raise TypeError(f'Input array {type(input)} can only be Numpy array or PyTorch tensor (if installed) or Spyker tensor.')
-
-
-def create(input, dtype, shape):
-    if torch_avail and torch.is_tensor(input):
-        return create_torch(input, dtype, shape)
-
-    if numpy_avail and type(input) is np.ndarray:
-        return create_numpy(input, dtype, shape)
-
-    if type(input) is impl.tensor:
-        return create_tensor(input.device, dtype, shape)
-
-    raise TypeError(f'Input array {type(input)} can only be Numpy array or PyTorch tensor (if installed) or Spyker tensor.')
+    raise TypeError(f'Input array {type(array)} can only be Numpy array or PyTorch tensor (if installed) or Spyker tensor.')
 
 
-def copy(input):
-    if torch_avail and torch.is_tensor(input):
-            return input.clone()
+def create(array, dtype, shape):
+    if torch_avail and torch.is_tensor(array):
+        return create_torch(array, dtype, shape)
 
-    if numpy_avail and type(input) is np.ndarray:
-            return np.array(input, copy=True)
+    if numpy_avail and type(array) is np.ndarray:
+        return create_numpy(array, dtype, shape)
 
-    if type(input) is impl.tensor: return input.copy()
+    if type(array) is impl.tensor:
+        return create_tensor(array.device, dtype, shape)
 
-
-def wrap_array(input):
-    return wrap(input)
-
-
-def copy_array(input, output):
-    wrap(input, False).to(wrap(output, True))
+    raise TypeError(f'Input array {type(array)} can only be Numpy array or PyTorch tensor (if installed) or Spyker tensor.')
 
 
-def _to_tensor(input, pinned=False, unified=False):
+def copy(array):
+    if torch_avail and torch.is_tensor(array):
+            return array.clone()
+
+    if numpy_avail and type(array) is np.ndarray:
+            return np.array(array, copy=True)
+
+    if type(array) is impl.tensor: return array.copy()
+
+
+def wrap_array(array):
+    return wrap(array)
+
+
+def copy_array(source, destin):
+    wrap(source, False).to(wrap(destin, True))
+
+
+def _to_tensor(array, pinned=False, unified=False):
     """
     Create Spyker Tensor from PyTorch tensor or Numpy array.
 
     Parameters
     ----------
-    input : torch.tensor or numpy.ndarray
+    array : torch.tensor or numpy.ndarray
         Container to be converted
 
     Returns
@@ -175,19 +175,19 @@ def _to_tensor(input, pinned=False, unified=False):
         Tensor created from copying input data
     """
 
-    temp = wrap(input)
+    temp = wrap(array)
     output = create_tensor(temp.device, temp.dtype, temp.shape, pinned, unified)
     temp.to(output)
     return output
 
 
-def _to_numpy(input):
+def _to_numpy(array):
     """
     Create Numpy array from Spyker Tensor
 
     Parameters
     ----------
-    input : Spyker.tensor
+    array : Spyker.tensor
         Tensor to be converted
 
     Returns
@@ -196,19 +196,19 @@ def _to_numpy(input):
         Array created from copying input data
     """
 
-    dtype = type_numpy(input.dtype)
-    output = np.zeros(input.shape, dtype=dtype)
-    input.to(wrap(output))
+    dtype = type_numpy(array.dtype)
+    output = np.zeros(array.shape, dtype=dtype)
+    array.to(wrap(output))
     return output
 
 
-def _to_torch(input):
+def _to_torch(array):
     """
     Create PyTorch tensor from Spyker Tensor
 
     Parameters
     ----------
-    input : Spyker.tensor
+    array : Spyker.tensor
         Tensor to be converted
 
     Returns
@@ -217,20 +217,20 @@ def _to_torch(input):
         Tensor created from copying input data
     """
 
-    dtype = type2torch(input.dtype)
-    device = device2torch(input.device)
-    output = torch.zeros(input.shape, dtype=dtype, device=device)
-    input.to(wrap(output))
+    dtype = type2torch(array.dtype)
+    device = device2torch(array.device)
+    output = torch.zeros(array.shape, dtype=dtype, device=device)
+    array.to(wrap(output))
     return output
 
 
-def _to_sparse(input, threshold=0.0):
+def _to_sparse(array, threshold=0.0):
     """
     Create Spyker Sparse from PyTorch tensor or Numpy array.
 
     Parameters
     ----------
-    input : torch.tensor or numpy.ndarray
+    array : torch.tensor or numpy.ndarray
         Container to be converted
 
     Returns
@@ -239,69 +239,69 @@ def _to_sparse(input, threshold=0.0):
         Sparse container created from converting input data
     """
 
-    return impl.sparse_tensor(wrap(input), threshold)
+    return impl.sparse_tensor(wrap(array), threshold)
 
 
-def to_tensor(*inputs, pinned=False, unified=False):
-    output = tuple([_to_tensor(x, pinned, unified) for x in inputs])
+def to_tensor(*arrays, pinned=False, unified=False):
+    output = tuple([_to_tensor(x, pinned, unified) for x in arrays])
     return output if len(output) > 1 else output[0]
 
 
-def to_numpy(*inputs):
-    output = tuple([_to_numpy(x) for x in inputs])
+def to_numpy(*arrays):
+    output = tuple([_to_numpy(x) for x in arrays])
     return output if len(output) > 1 else output[0]
 
 
-def to_torch(*inputs):
-    output = tuple([_to_torch(x) for x in inputs])
+def to_torch(*arrays):
+    output = tuple([_to_torch(x) for x in arrays])
     return output if len(output) > 1 else output[0]
 
 
-def to_sparse(*inputs, threshold=0.0):
-    output = tuple([_to_sparse(x, threshold) for x in inputs])
+def to_sparse(*arrays, threshold=0.0):
+    output = tuple([_to_sparse(x, threshold) for x in arrays])
     return output if len(output) > 1 else output[0]
 
 
-def least2(input):
-    shape = list(input.shape)
+def least2(array):
+    shape = list(array.shape)
     if len(shape) == 1: shape.insert(0, 1)
     if len(shape) <= 1: raise ValueError("Input dimensions couldn't be viewed as at least 2D.")
-    return input.reshape(shape)
+    return array.reshape(shape)
 
 
-def least3(input):
-    shape = list(input.shape)
+def least3(array):
+    shape = list(array.shape)
     if len(shape) == 2: shape.insert(0, 1)
     if len(shape) <= 2: raise ValueError("Input dimensions couldn't be viewed as at least 3D.")
-    return input.reshape(shape)
+    return array.reshape(shape)
 
 
-def to2(input):
-    shape = list(input.shape)
+def to2(array):
+    shape = list(array.shape)
     if len(shape) == 1: shape.insert(0, 1)
     if len(shape) != 2: raise ValueError("Input dimensions couldn't be viewed as 2D.")
-    return input.reshape(shape)
+    return array.reshape(shape)
 
 
-def to3(input):
-    shape = list(input.shape)
+def to3(array):
+    shape = list(array.shape)
     if len(shape) == 2: shape.insert(0, 1)
     if len(shape) != 3: raise ValueError("Input dimensions couldn't be viewed as 3D.")
-    return input.reshape(shape)
+    return array.reshape(shape)
 
 
-def to4(input):
-    shape = list(input.shape)
+def to4(array):
+    shape = list(array.shape)
     if len(shape) == 3: shape.insert(0, 1)
     if len(shape) != 4: raise ValueError("Input dimensions couldn't be viewed as 4D.")
-    return input.reshape(shape)
+    return array.reshape(shape)
 
 
-def to5(input):
-    shape = list(input.shape)
+def to5(array):
+    shape = list(array.shape)
     if len(shape) == 4: shape.insert(0, 1)
     if len(shape) != 5: raise ValueError("Input dimensions couldn't be viewed as 5D.")
-    return input.reshape(shape)
+    return array.reshape(shape)
 
 
 def expand2(shape):

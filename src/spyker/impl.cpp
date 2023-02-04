@@ -50,7 +50,10 @@ void cuda_conv_clear() { SpykerAssert(false, "Core::CUDA", "CUDA is not enabled 
 
 void cuda_poisson_clear() { SpykerAssert(false, "Core::CUDA", "CUDA is not enabled in this build."); }
 
-void cuda_light_conv(bool light) { SpykerAssert(false, "Core::CUDA", "CUDA is not enabled in this build."); }
+void cuda_conv_options(Size light, Size heuristic, Size force)
+{
+    SpykerAssert(false, "Core::CUDA", "CUDA is not enabled in this build.");
+}
 
 void *pinned_alloc(Size size) { SpykerAssert(false, "Core::CUDA", "CUDA is not enabled in this build."); }
 

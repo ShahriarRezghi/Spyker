@@ -62,9 +62,9 @@ void stdp(ARG1(U16, direct), ARG1(F32, kernel), STDPConfig config)
 
     for (Size i = 0; i < direct.x; ++i)
     {
-        F32 mult = (config.stabilize ? (kernel(i) - config.low) * (config.high - kernel(i)) : 1);
-        kernel(i) += (direct(i) ? config.pos : config.neg) * mult;
-        kernel(i) = std::max(config.low, std::min(F64(kernel(i)), config.high));
+        F32 mult = (config.stabilize ? (kernel(i) - config.lower) * (config.upper - kernel(i)) : 1);
+        kernel(i) += (direct(i) ? config.positive : config.negative) * mult;
+        kernel(i) = std::max(config.lower, std::min(F64(kernel(i)), config.upper));
     }
 }
 
