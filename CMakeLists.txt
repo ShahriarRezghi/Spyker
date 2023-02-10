@@ -122,6 +122,8 @@ if(ENABLE_CUDA)
                 set(CUDA_ARCH_LIST 30 32 35 37 50 52 53 60 61 62 70 72 75)
             elseif(CUDAToolkit_VERSION_MAJOR EQUAL 11)
                 set(CUDA_ARCH_LIST 35 37 50 52 53 60 61 62 70 72 75 80 86)
+            elseif(CUDAToolkit_VERSION_MAJOR EQUAL 12)
+                set(CUDA_ARCH_LIST 50 52 53 60 61 62 70 72 75 80 86 87 89 90)
             endif()
         endif()
 
