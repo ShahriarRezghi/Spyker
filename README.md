@@ -2,7 +2,9 @@
 - [Table of Contents](#table-of-contents)
 - [Introduction](#introduction)
 - [Installation](#installation)
+- [Documentation](#documentation)
 - [Tutorials](#tutorials)
+- [Examples](#examples)
 - [Contribution](#contribution)
 - [License](#license)
 
@@ -18,11 +20,14 @@ You can see the documentation for the C++ and Python interfaces [here](https://s
 # Tutorials
 You can take a look at the tutorials listed below to learn how to use the library.
 
-+ [Tutorial 1: Spyker and PyTorch](tutorial/spyker_and_pytorch.ipynb)
-+ [Tutorial 2: Spyker and Numpy](tutorial/spyker_and_numpy.ipynb)
-+ [Tutorial 3: Sparse Spyker](tutorial/sparse_spyker.ipynb)
-+ [Tutorial 4: Other Functionalities](tutorial/other_functionalities.ipynb)
-+ [Tutorial 5: Rate Coding](tutorial/rate_coding.ipynb)
++ [Tutorial 1: Spyker and PyTorch](./tutorials/spyker_and_pytorch.ipynb)
++ [Tutorial 2: Spyker and Numpy](./tutorials/spyker_and_numpy.ipynb)
++ [Tutorial 3: Sparse Spyker](./tutorials/sparse_spyker.ipynb)
++ [Tutorial 4: Other Functionalities](./tutorials/other_functionalities.ipynb)
++ [Tutorial 5: Rate Coding](./tutorials/rate_coding.ipynb)
+
+# Examples
+You can checkout example implementations of some networks in the [examples directory](./examples/).
 
 # Contribution
 You can report bugs and request featues on the [issues page](../../issues).
