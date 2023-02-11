@@ -63,7 +63,7 @@ class Network:
         self.count1, self.count2, self.thresh1, self.thresh2 = 0, 0, 15, 5
         self.conv1 = spyker.Conv(6, 30, 5, pad=2, mean=.8, std=.05, device=device)
         self.conv2 = spyker.Conv(30, 250, 3, pad=1, mean=.8, std=.05, device=device)
-        self.conv3 = spyker.Conv(250, 200, 4, pad=0, mean=.8, std=.05, device=device)
+        self.conv3 = spyker.Conv(250, 200, 5, pad=2, mean=.8, std=.05, device=device)
 
         self.conv1.stdpconfig = [spyker.STDPConfig(.004, -.003)]
         self.conv2.stdpconfig = [spyker.STDPConfig(.004, -.003)]
@@ -75,29 +75,29 @@ class Network:
         self.wta2 = lambda x: spyker.convwta(x, 1, 8)
         self.wta3 = lambda x: spyker.convwta(x, 0, 1)
 
-    def train_layer1(self, input):
-        output = spyker.inhibit(spyker.threshold(self.conv1(input), self.thresh1))
-        self.conv1.stdp(input, self.wta1(output), spyker.fire(output))
+    def train_layer1(self, array):
+        output = spyker.inhibit(spyker.threshold(self.conv1(array), self.thresh1))
+        self.conv1.stdp(array, self.wta1(output), spyker.fire(output))
 
-        self.count1 += input.size(0)
+        self.count1 += array.size(0)
         if self.count1 > 500:
             self.count1 -= 500
             update(self.conv1.stdpconfig[0], 2, .15)
 
-    def train_layer2(self, input):
-        input = spyker.pool(spyker.fire(self.conv1(input), self.thresh1), 2)
-        output = spyker.inhibit(spyker.threshold(self.conv2(input), self.thresh2))
-        self.conv2.stdp(input, self.wta2(output), spyker.fire(output))
+    def train_layer2(self, array):
+        array = spyker.pool(spyker.fire(self.conv1(array), self.thresh1), 2)
+        output = spyker.inhibit(spyker.threshold(self.conv2(array), self.thresh2))
+        self.conv2.stdp(array, self.wta2(output), spyker.fire(output))
 
-        self.count2 += input.size(0)
+        self.count2 += array.size(0)
         if self.count2 > 500:
             self.count2 -= 500
             update(self.conv2.stdpconfig[0], 2, .15)
 
-    def train_layer3(self, input, target):
-        input = spyker.pool(spyker.fire(self.conv1(input), self.thresh1), 2)
-        input = spyker.pool(spyker.fire(self.conv2(input), self.thresh2), 3)
-        output = spyker.infinite(self.conv3(input))
+    def train_layer3(self, array, target):
+        array = spyker.pool(spyker.fire(self.conv1(array), self.thresh1), 2)
+        array = spyker.pool(spyker.fire(self.conv2(array), self.thresh2), 3)
+        output = spyker.infinite(self.conv3(array))
         winners = self.wta3(output)
 
         labels = torch.zeros(len(winners), dtype=torch.long).fill_(-1)
@@ -107,19 +107,19 @@ class Network:
                 winners[i][0].c = labels[i] != target[i]
 
         output = spyker.fire(output)
-        self.conv3.stdp(input, winners, output)
+        self.conv3.stdp(array, winners, output)
         return labels
 
-    def __call__(self, input):
-        input = spyker.pool(spyker.fire(self.conv1(input), self.thresh1), 2)
-        input = spyker.pool(spyker.fire(self.conv2(input), self.thresh2), 3)
-        input = spyker.infinite(self.conv3(input))
-        winners = self.wta3(input)
+    def __call__(self, array):
+        array = spyker.pool(spyker.fire(self.conv1(array), self.thresh1), 2)
+        array = spyker.pool(spyker.fire(self.conv2(array), self.thresh2), 3)
+        array = spyker.infinite(self.conv3(array))
+        winners = self.wta3(array)
 
         labels = torch.zeros(len(winners), dtype=torch.long).fill_(-1)
         for i in range(len(winners)):
             if len(winners[i]) == 1:
-                labels[i] = winners[i][0].z // (input.size(2) // 10)
+                labels[i] = winners[i][0].z // (array.size(2) // 10)
         return labels
 
     def save(self, path):
@@ -138,7 +138,7 @@ class Network:
 if __name__ == "__main__":
     batch_size = 64
     data_root = './MNIST/'
-    model_path = 'model.npz'
+    model_path = 'mozafari_mnist_original.npz'
     device = spyker.device('cuda' if spyker.cuda_available() else 'cpu')
 
     network = Network(device)

@@ -84,7 +84,7 @@ class Network:
 if __name__ == '__main__':
     batch_size = 64
     data_root = './MNIST/'
-    model_path = 'model.npz'
+    model_path = 'kheradpisheh_mnist_sparse.npz'
 
     network = Network()
     transform = Transform()

@@ -27,7 +27,7 @@ You can take a look at the tutorials listed below to learn how to use the librar
 + [Tutorial 5: Rate Coding](./tutorials/rate_coding.ipynb)
 
 # Examples
-You can checkout example implementations of some networks in the [examples directory](./examples/).
+You can checkout example implementations of some networks in the [examples directory](./examples/). The example use the MNIST dataset, which is expected to be inside the `MNIST` directory beside the files, and the name of the files is expected to be `train-images-idx3-ubyte`, `train-labels-idx1-ubyte`, `t10k-images-idx3-ubyte`, `t10k-labels-idx1-ubyte`.
 
 # Contribution
 You can report bugs and request featues on the [issues page](../../issues).
