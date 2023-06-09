@@ -85,7 +85,7 @@ struct Timer
 
     inline Timer() { reset(); }
 
-    inline float operator()()
+    inline float elapsed()
     {
         auto now = std::chrono::high_resolution_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - time);
@@ -312,7 +312,7 @@ struct Vec5
 
 inline std::ostream &operator<<(std::ostream &os, Timer &timer)  //
 {
-    return os << "Elapsed: " << timer();
+    return os << "Elapsed: " << timer.elapsed();
 }
 
 template <typename T>

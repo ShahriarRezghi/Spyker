@@ -7,7 +7,7 @@ namespace Core
 {
 namespace CPU
 {
-#if defined(SPYKER_USE_DNNL)
+#ifdef SPYKER_USE_DNNL
 struct Conv
 {
     dnnl::convolution_forward conv;
@@ -60,8 +60,6 @@ struct Conv
 
 std::vector<std::shared_ptr<Conv>> conv_handle;
 
-void conv_clear() { conv_handle.clear(); }
-
 Conv &conv_find(Len4 input, Len4 kernel, Len4 output, Len2 stride, Len4 pad, Type type)
 {
     for (const auto &conv : conv_handle)
@@ -76,9 +74,11 @@ void _conv(Vec4<T> input, Vec4<T> kernel, Vec4<T> output, Len2 stride, Len4 pad)
     Conv &conv = conv_find(input.len(), kernel.len(), output.len(), stride, pad, TypeName<T>());
     conv(input.data, kernel.data, output.data);
 }
+void conv_clear() { conv_handle.clear(); }
 
-#elif defined(HEAVY_USE_BLAS)
+#else
 
+#ifdef SPYKER_USE_BLAS
 template <typename T>
 void transform1(ARG3(T, input), ARG3(T, output), Len2 start)
 {
@@ -194,7 +194,6 @@ void _conv(Vec4<F16> input_, Vec4<F16> kernel, Vec4<F16> output, Len2 stride, Le
 {
     SpykerAssert(false, "CPU::Conv", "F16 is not supported with BLAS.");
 }
-
 void conv_clear() {}
 
 #else
@@ -204,8 +203,10 @@ void _conv(Vec4<T> input_, Vec4<T> kernel, Vec4<T> output, Len2 stride, Len4 pad
 {
     SpykerCompare(false, ==, true, "CPU::Conv", "BLAS and LAPACK are not enabled in this build.");
 }
-
 void conv_clear() {}
+
+#endif
+
 #endif
 
 template <typename T>

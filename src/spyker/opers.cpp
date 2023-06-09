@@ -67,6 +67,7 @@ void clearContext()
     Core::cpu_conv_clear();
     Core::cpu_fc_clear();
     Core::cpu_poisson_clear();
+    Core::sparse_conv_clear();
 
     if (cudaAvailable())
     {

@@ -7,7 +7,12 @@ using namespace Spyker;
 
 int main()
 {
-    auto input = Tensor(Kind::CUDA, Type::F16, {32, 1, 32, 20, 20});
-    Conv layer(Kind::CUDA, 32, 32, 3);
-    layer(input);
+    auto temp = Tensor(Type::F32, {1, 1, 10, 10});
+    auto input = Sparse::code(temp, 5);
+    Conv layer(1, 1, 3, 1, 1);
+
+    auto output1 = Sparse::conv(input, layer.kernel, 1, 1, 1);
+    auto output2 = Sparse::conv(input, layer.kernel, 1, 1, 1);
+
+    cout << output1.numel() << " " << output2.numel() << endl;
 }

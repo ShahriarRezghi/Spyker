@@ -117,6 +117,8 @@ void cuda2cpu(Size size, void *input, void *output);
 
 void cpu_conv_clear();
 
+void sparse_conv_clear();
+
 void cpu_fc_clear();
 
 void cpu_poisson_clear();

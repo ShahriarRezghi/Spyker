@@ -43,10 +43,10 @@ set(CUDA_ARCH_LIST "" CACHE STRING "List of CUDA Architectures to generate code 
 option(ENABLE_PYTHON "Build with Python module support" ON)
 option(ENABLE_CUDA "Build the library with CUDA support" ON)
 option(ENABLE_CUDNN "Build the library with CUDNN Support" ON)
-option(ENABLE_DNNL "Build the library with DNNL Support" ON)
-option(ENABLE_BLAS "Build the library with BLAS support" ON)
+option(ENABLE_DNNL "Build the library with DNNL Support" OFF)
+option(ENABLE_BLAS "Build the library with BLAS support" OFF)
 option(ENABLE_EXAMPLES "Build examples for the library" ON)
-option(ENABLE_TESTS "Build tests for the library" ON)
+option(ENABLE_TESTS "Build tests for the library" OFF)
 
 set(PYTHON_ENABLED OFF)
 set(CUDA_ENABLED OFF)
@@ -64,6 +64,7 @@ endif()
 # BLAS Library
 if(ENABLE_BLAS)
     add_subdirectory(3rd/blasw)
+
     set(BLAS_ENABLED ON)
     set(LIBRARY_BLAS BLASW::BLASW)
     set(DEFINE_BLAS SPYKER_USE_BLAS)
@@ -136,6 +137,12 @@ if(ENABLE_CUDA)
             set(LIBRARY_CUDA curand.lib cublas.lib)
         else()
             set(LIBRARY_CUDA culibos curand_static cublas_static)
+        endif()
+
+        if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL 12.0)
+            if (NOT WIN32)
+                set(LIBRARY_CUDA ${LIBRARY_CUDA} nvrtc)
+            endif()
         endif()
 
         if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL 10.1)
@@ -221,8 +228,8 @@ endif()
 
 # Examples
 if(ENABLE_EXAMPLES)
-    # add_executable(play play/play.cpp)
-    # target_link_libraries(play PUBLIC spyker)
+     add_executable(play play/play.cpp)
+     target_link_libraries(play PUBLIC spyker)
 endif()
 
 # Summary
