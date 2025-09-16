@@ -8,13 +8,17 @@
 
 import os
 import sys
+import types
+import subprocess
 
-sys.path.append(os.path.abspath(".") + "/../src/python/")
+sys.path.insert(0, os.path.abspath(".") + "/../src/python/")
 
 project = "Spyker"
 copyright = "2021-2025, Shahriar Rezghi"
 author = "Shahriar Rezghi"
 release = "2025"
+
+subprocess.check_call(["doxygen", "Doxyfile"], cwd=os.path.dirname(__file__))
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -103,11 +103,9 @@ SpykerExport void cudaConvHeuristic(bool heuristic);
 
 /// Set heuristic convolution algorithm finding mode.
 ///
-/// When CUDNN is enabled and heuristic algorithm finding is active, newely created convolution descriptors
-/// (not cached ones) will use heuristics to find the fastest convolution algorithms instead of running samples.
-/// Enabling this might decrease performance in some cases. This is enabled by default.
+/// When CUDNN is enabled and force mode is active, the algorithm will try to force the usage of tensor cores.
 ///
-/// @param heuristic heuristic convolution mode.
+/// @param force force tensor cores.
 SpykerExport void cudaConvForce(bool force);
 
 /// Get a list of all the available devices that the library can use.
@@ -226,12 +224,14 @@ public:
     /// @param size half size of the window. full size of the window is 2 * size + 1.
     /// @param filters list of 'DoGFilter's to be applied.
     /// @param pad padding size of the input (default 0).
+    /// @param type data type for the kernel and thus the convolution operation, floating point types are allowed.
     DoG(Size size, const std::vector<DoGFilter> &filters, Expand4 pad = 0, Type type = Type::F32);
 
     /// @param device device of the filter to be run on.
     /// @param size half size of the window. full size of the window is 2 * size + 1.
     /// @param filters list of 'DoGFilter's to be applied.
     /// @param pad padding size of the input (default 0).
+    /// @param type data type for the kernel and thus the convolution operation, floating point types are allowed.
     DoG(Device device, Size size, const std::vector<DoGFilter> &filters, Expand4 pad = 0, Type type = Type::F32);
 
     /// Apply the filter on the input.
@@ -267,12 +267,14 @@ public:
     /// @param size half size of the window. full size of the window is 2 * size + 1.
     /// @param filters list of 'GaborFilter's to be applied.
     /// @param pad padding size of the input (TBLR) (default 0).
+    /// @param type data type for the kernel and thus the convolution operation, floating point types are allowed.
     Gabor(Size size, const std::vector<GaborFilter> &filters, Expand4 pad = 0, Type type = Type::F32);
 
     /// @param device device of the filter to be run on.
     /// @param size half size of the window. full size of the window is 2 * size + 1.
     /// @param filters list of 'GaborFilter's to be applied.
     /// @param pad padding size of the input (TBLR) (default 0).
+    /// @param type data type for the kernel and thus the convolution operation, floating point types are allowed.
     Gabor(Device device, Size size, const std::vector<GaborFilter> &filters, Expand4 pad = 0, Type type = Type::F32);
 
     /// Apply the filter on the input.
@@ -308,12 +310,14 @@ public:
     /// @param size half size of the window. full size of the window is 2 * size + 1.
     /// @param stds list of stds for the LoG filters to be applied.
     /// @param pad padding size of the input (TBLR) (default 0).
+    /// @param type data type for the kernel and thus the convolution operation, floating point types are allowed.
     LoG(Size size, const std::vector<F64> &stds, Expand4 pad = 0, Type type = Type::F32);
 
     /// @param device device of the filter to be run on.
     /// @param size half size of the window. full size of the window is 2 * size + 1.
     /// @param stds list of stds for the LoG filters to be applied.
     /// @param pad padding size of the input (TBLR) (default 0).
+    /// @param type data type for the kernel and thus the convolution operation, floating point types are allowed.
     LoG(Device device, Size size, const std::vector<F64> &stds, Expand4 pad = 0, Type type = Type::F32);
 
     /// Apply the filter on the input.
@@ -395,6 +399,7 @@ public:
     /// @param pad padding size of the convolution (default 0).
     /// @param mean mean of the random normal variable that initializes the kernel (default 0.5).
     /// @param std standard deviation of the random normal variable that initializes the kernel (default 0.02).
+    /// @param type data type for the kernel and thus the convolution operation, floating point types are allowed.
     Conv(Size input, Size output, Expand2 kernel, Expand2 stride = 1, Expand4 pad = 0, F64 mean = .5, F64 std = .02,
          Type type = Type::F32);
 
@@ -406,6 +411,7 @@ public:
     /// @param pad padding size of the convolution (default 0).
     /// @param mean mean of the random normal variable that initializes the kernel (default 0.5).
     /// @param std standard deviation of the random normal variable that initializes the kernel (default 0.02).
+    /// @param type data type for the kernel and thus the convolution operation, floating point types are allowed.
     Conv(Device device, Size input, Size output, Expand2 kernel, Expand2 stride = 1, Expand4 pad = 0, F64 mean = .5,
          F64 std = .02, Type type = Type::F32);
 
@@ -424,7 +430,6 @@ public:
     // TODO
     /// Apply 2D Convolution
     ///
-    /// @param conv convlution class to be used.
     /// @param input input sparse tensor to be convolved.
     /// @param threshold threshold to be applied to potentials.
     /// @return convolution and intergreate-and-fire output spikes.
@@ -440,7 +445,6 @@ public:
     // TODO
     /// Apply the STDP on the convolution.
     ///
-    /// @param conv convolution class to be used.
     /// @param input convolution input sparse tensor.
     /// @param winners winner neurons that are selected for updating.
     void stdp(SparseTensor input, const Winners &winners);
@@ -472,6 +476,7 @@ public:
     /// @param output dimensions of the output signal.
     /// @param mean mean of the random normal variable that initializes the kernel (default 0.5).
     /// @param std standard deviation of the random normal variable that initializes the kernel (default 0.02).
+    /// @param type data type for the kernel and thus the fc operation, floating point types are allowed.
     FC(Size input, Size output, F64 mean = .5, F64 std = .02, Type type = Type::F32);
 
     /// @param device device of the module to be run on.
@@ -479,17 +484,20 @@ public:
     /// @param output dimensions of the output signal.
     /// @param mean mean of the random normal variable that initializes the kernel (default 0.5).
     /// @param std standard deviation of the random normal variable that initializes the kernel (default 0.02).
+    /// @param type data type for the kernel and thus the fc operation, floating point types are allowed.
     FC(Device device, Size input, Size output, F64 mean = .5, F64 std = .02, Type type = Type::F32);
 
     /// Apply the fully connected on the input.
     ///
     /// @param[in] input input dense tensor to be processed.
     /// @param[out] output dense tensor to be written to.
+    /// @param[in] sign convert the kernel to sign before performing the operation.
     Tensor operator()(Tensor input, Tensor output, bool sign = false);
 
     /// Apply the fully connected on the input.
     ///
     /// @param[in] input input dense tensor to be processed.
+    /// @param[in] sign convert the kernel to sign before performing the operation.
     /// @return fully connected output dense tensor.
     Tensor operator()(Tensor input, bool sign = false);
 
@@ -608,6 +616,7 @@ SpykerExport Tensor quantize(Tensor input, Scalar lower, Scalar middle, Scalar u
 /// @param sort whether to sort the values or not.
 /// Sorting might increase accuracy but it deceases performance (default true).
 /// @param type data type of the created output tensor (default Type::U8).
+/// @param code neural coding type (default Code::Rank).
 /// @return rank coding output dense tensor.
 SpykerExport Tensor code(Tensor input, Size time, bool sort = true, Type type = Type::U8, Code code = Code::Rank);
 
@@ -618,6 +627,7 @@ SpykerExport Tensor code(Tensor input, Size time, bool sort = true, Type type = 
 /// @param time number of time steps.
 /// @param sort whether to sort the values or not.
 /// Sorting might increase accuracy but it deceases performance (default true).
+/// @param code neural coding type (default Code::Rank).
 /// @return the output tensor.
 SpykerExport Tensor code(Tensor input, Tensor output, Size time, bool sort = true, Code code = Code::Rank);
 
@@ -636,6 +646,7 @@ SpykerExport Tensor infinite(Tensor input, Scalar value = 0, bool inplace = true
 /// @param[in] input input dense tensor.
 /// @param threshold threshold of firing (default 0).
 /// @param type data type of the created output tensor (default Type::U8).
+/// @param code neural coding type (default Code::Rank).
 /// @return integrate-and-fire output dense tensor.
 SpykerExport Tensor fire(Tensor input, Scalar threshold = 0, Type type = Type::U8, Code code = Code::Rank);
 
@@ -646,6 +657,7 @@ SpykerExport Tensor fire(Tensor input, Scalar threshold = 0, Type type = Type::U
 /// @param[in] input input dense tensor.
 /// @param[out] output output dense tensor.
 /// @param threshold threshold of firing (default 0).
+/// @param code neural coding type (default Code::Rank).
 /// @return the output tensor.
 SpykerExport Tensor fire(Tensor input, Tensor output, Scalar threshold = 0, Code code = Code::Rank);
 
@@ -656,6 +668,7 @@ SpykerExport Tensor fire(Tensor input, Tensor output, Scalar threshold = 0, Code
 /// @param[in] input input dense tensor.
 /// @param threshold threshold of integrate-and-fire layer (default 0).
 /// @param type data type of the created output tensor (default Type::U8).
+/// @param code neural coding type (default Code::Rank).
 /// @return gathered output dense tensor.
 SpykerExport Tensor gather(Tensor input, Scalar threshold = 0, Type type = Type::U8, Code code = Code::Rank);
 
@@ -666,6 +679,7 @@ SpykerExport Tensor gather(Tensor input, Scalar threshold = 0, Type type = Type:
 /// @param[in] input input dense tensor.
 /// @param[out] output output dense tensor.
 /// @param threshold threshold of integrate-and-fire layer (default 0).
+/// @param code neural coding type (default Code::Rank).
 /// @return the output tensor.
 SpykerExport Tensor gather(Tensor input, Tensor output, Scalar threshold = 0, Code code = Code::Rank);
 
@@ -690,6 +704,7 @@ SpykerExport Tensor scatter(Tensor input, Tensor output);
 /// @param[in] kernel pooling kernel dense tensor.
 /// @param stride convolution stride. Zero stride means same as kernel (default 0).
 /// @param pad input padding (default 0).
+/// @param rates firing rates of the input tensor, if empty, rank coding will be used.
 /// @return pooling output dense tensor.
 SpykerExport Tensor pool(Tensor input, Expand2 kernel, Expand2 stride = 0, Expand4 pad = 0, Tensor rates = {});
 
@@ -700,6 +715,7 @@ SpykerExport Tensor pool(Tensor input, Expand2 kernel, Expand2 stride = 0, Expan
 /// @param kernel pooling kernel size.
 /// @param stride convolution stride. Zero stride means same as kernel (default 0).
 /// @param pad input padding (default 0).
+/// @param rates firing rates of the input tensor, if empty, rank coding will be used.
 /// @return the output tensor.
 SpykerExport Tensor pool(Tensor input, Tensor output, Expand2 kernel, Expand2 stride = 0, Expand4 pad = 0,
                          Tensor rates = {});

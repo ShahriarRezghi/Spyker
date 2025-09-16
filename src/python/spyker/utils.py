@@ -433,7 +433,7 @@ def to_tensor(
 
     Parameters
     ----------
-    *arrays : torch.Tensor or numpy.ndarray or spyker.Tensor
+    arrays : torch.Tensor or numpy.ndarray or spyker.Tensor
         One or more input arrays to convert.
     pinned : bool, default=False
         Use pinned host memory for destinations where applicable.
@@ -461,7 +461,7 @@ def to_numpy(*arrays: impl.Tensor) -> numpy.ndarray:
 
     Parameters
     ----------
-    *arrays : spyker.Tensor
+    arrays : spyker.Tensor
         One or more Spyker tensors.
 
     Returns
@@ -485,7 +485,7 @@ def to_torch(*arrays: impl.Tensor) -> torch.Tensor:
 
     Parameters
     ----------
-    *arrays : spyker.Tensor
+    arrays : spyker.Tensor
         One or more Spyker tensors.
 
     Returns
@@ -509,7 +509,7 @@ def to_sparse(*arrays: TensorLike, threshold: float = 0.0) -> impl.SparseTensor:
 
     Parameters
     ----------
-    *arrays : torch.Tensor or numpy.ndarray or spyker.Tensor
+    arrays : torch.Tensor or numpy.ndarray or spyker.Tensor
         One or more dense inputs to be sparsified.
     threshold : float, default=0.0
         Pruning threshold
