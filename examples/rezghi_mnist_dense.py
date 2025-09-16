@@ -1,15 +1,23 @@
-import os, spyker, torch, numpy
-from sklearn.svm import SVC
+import os
+
+import numpy
+import torch
 from sklearn.decomposition import PCA
-from torch.utils.data import TensorDataset, DataLoader
+from sklearn.svm import SVC
+from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
+
+import spyker
 
 
 def dataset(root, device, batch):
     device = torch.device(device.kind)
     trainx, trainy, testx, testy = spyker.read_mnist(
-        root+'/train-images-idx3-ubyte', root+'/train-labels-idx1-ubyte',
-        root+ '/t10k-images-idx3-ubyte', root+ '/t10k-labels-idx1-ubyte')
+        root + "/train-images-idx3-ubyte",
+        root + "/train-labels-idx1-ubyte",
+        root + "/t10k-images-idx3-ubyte",
+        root + "/t10k-labels-idx1-ubyte",
+    )
     trainx, trainy, testx, testy = spyker.to_torch(trainx, trainy, testx, testy)
     trainx = trainx.div(255).to(torch.float32).to(device)
     testx = testx.div(255).to(torch.float32).to(device)
@@ -39,16 +47,16 @@ class Transform:
         self.filters = spyker.LoG(3, std, pad=3, device=device)
 
     def __call__(self, array):
-        return spyker.code(spyker.threshold(self.filters(array), .01), 15)
+        return spyker.code(spyker.threshold(self.filters(array), 0.01), 15)
 
 
 class Network:
     def __init__(self, device):
         self.count1, self.count2, self.thresh1, self.thresh2 = 0, 0, 16, 5
-        self.conv1 = spyker.Conv(6, 100, 5, pad=2, mean=.5, std=.02, device=device)
-        self.conv2 = spyker.Conv(100, 200, 3, pad=1, mean=.5, std=.02, device=device)
-        self.conv1.stdpconfig = [spyker.STDPConfig(.0004, -.0003)]
-        self.conv2.stdpconfig = [spyker.STDPConfig(.0004, -.0003)]
+        self.conv1 = spyker.Conv(6, 100, 5, pad=2, mean=0.5, std=0.02, device=device)
+        self.conv2 = spyker.Conv(100, 200, 3, pad=1, mean=0.5, std=0.02, device=device)
+        self.conv1.stdpconfig = [spyker.STDPConfig(0.0004, -0.0003)]
+        self.conv2.stdpconfig = [spyker.STDPConfig(0.0004, -0.0003)]
         self.wta1 = lambda x: spyker.convwta(x, 3, 5)
         self.wta2 = lambda x: spyker.convwta(x, 1, 8)
 
@@ -83,44 +91,44 @@ class Network:
 
     def load(self, path):
         data = numpy.load(path)
-        spyker.to_tensor(data['conv1_kernel']).to(self.conv1.kernel)
-        spyker.to_tensor(data['conv2_kernel']).to(self.conv2.kernel)
+        spyker.to_tensor(data["conv1_kernel"]).to(self.conv1.kernel)
+        spyker.to_tensor(data["conv2_kernel"]).to(self.conv2.kernel)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     batch_size = 64
-    data_root = './MNIST/'
-    model_path = 'rezghi_mnist_dense.npz'
-    device = spyker.device('cuda' if spyker.cuda_available() else 'cpu')
+    data_root = "./MNIST/"
+    model_path = "rezghi_mnist_dense.npz"
+    device = spyker.device("cuda" if spyker.cuda_available() else "cpu")
 
     network = Network(device)
     transform = Transform(device)
     trainset, testset = dataset(data_root, device, batch_size)
 
     if not os.path.isfile(model_path):
-        print(f'Training first layer')
+        print(f"Training first layer")
         for data, target in tqdm(trainset):
             network.train1(transform(data))
 
-        print(f'Training second layer')
+        print(f"Training second layer")
         for data, target in tqdm(trainset):
             network.train2(transform(data))
 
-        print(f'Saving model to: {model_path}')
+        print(f"Saving model to: {model_path}")
         network.save(model_path)
 
-    print(f'Loading model from: {model_path}')
+    print(f"Loading model from: {model_path}")
     network.load(model_path)
 
-    print('Computing network outputs')
+    print("Computing network outputs")
     trainx, trainy = total(network, transform, trainset)
     testx, testy = total(network, transform, testset)
 
-    print('Running PCA reduction')
+    print("Running PCA reduction")
     pca = PCA(n_components=200).fit(trainx, trainy)
     trainx, testx = pca.transform(trainx), pca.transform(testx)
 
-    print('Running SVM classification')
+    print("Running SVM classification")
     acc = SVC(C=2.4).fit(trainx, trainy).predict(testx)
     acc = (torch.tensor(acc) == testy).sum() / len(testy)
-    print(f'Accuracy: {acc*100}')
+    print(f"Accuracy: {acc*100}")

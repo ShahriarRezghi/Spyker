@@ -1,14 +1,22 @@
-import os, spyker, torch, numpy
+import os
+
+import numpy
+import torch
 from sklearn.svm import LinearSVC
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import DataLoader, TensorDataset
+
+import spyker
 from spyker import DoGFilter as F
 
 
 def dataset(root, device, batch):
     device = torch.device(device.kind)
     trainx, trainy, testx, testy = spyker.read_mnist(
-        root+'/train-images-idx3-ubyte', root+'/train-labels-idx1-ubyte',
-        root+ '/t10k-images-idx3-ubyte', root+ '/t10k-labels-idx1-ubyte')
+        root + "/train-images-idx3-ubyte",
+        root + "/train-labels-idx1-ubyte",
+        root + "/t10k-images-idx3-ubyte",
+        root + "/t10k-labels-idx1-ubyte",
+    )
     trainx, trainy, testx, testy = spyker.to_torch(trainx, trainy, testx, testy)
     trainx = trainx.div(255).to(torch.float32).to(device)
     testx = testx.div(255).to(torch.float32).to(device)
@@ -31,6 +39,7 @@ def total(network, transform, dataset):
         total_target.append(target)
     return torch.cat(total_data), torch.cat(total_target)
 
+
 def perform(labels, target):
     perf = numpy.zeros(4)
     silent = (labels == -1).sum().item()
@@ -50,25 +59,31 @@ def test(network, transform, dataset):
 
 class Transform:
     def __init__(self, device):
-        filters = [F(3/9, 6/9), F(6/9, 3/9), F(7/9, 14/9),
-                   F(14/9, 7/9), F(13/9, 26/9), F(26/9, 13/9)]
+        filters = [
+            F(3 / 9, 6 / 9),
+            F(6 / 9, 3 / 9),
+            F(7 / 9, 14 / 9),
+            F(14 / 9, 7 / 9),
+            F(13 / 9, 26 / 9),
+            F(26 / 9, 13 / 9),
+        ]
         self.filters = spyker.DoG(3, filters, pad=3, device=device)
 
     def __call__(self, array):
-        return spyker.code(spyker.threshold(self.filters(array), .02), 15)
+        return spyker.code(spyker.threshold(self.filters(array), 0.02), 15)
 
 
 class Network:
     def __init__(self, device):
         self.count1, self.count2, self.thresh1, self.thresh2 = 0, 0, 15, 5
-        self.conv1 = spyker.Conv(6, 30, 5, pad=2, mean=.8, std=.05, device=device)
-        self.conv2 = spyker.Conv(30, 250, 3, pad=1, mean=.8, std=.05, device=device)
-        self.conv3 = spyker.Conv(250, 200, 5, pad=2, mean=.8, std=.05, device=device)
+        self.conv1 = spyker.Conv(6, 30, 5, pad=2, mean=0.8, std=0.05, device=device)
+        self.conv2 = spyker.Conv(30, 250, 3, pad=1, mean=0.8, std=0.05, device=device)
+        self.conv3 = spyker.Conv(250, 200, 5, pad=2, mean=0.8, std=0.05, device=device)
 
-        self.conv1.stdpconfig = [spyker.STDPConfig(.004, -.003)]
-        self.conv2.stdpconfig = [spyker.STDPConfig(.004, -.003)]
-        reward = spyker.STDPConfig(.004, -.003, False, .2, .8)
-        punish = spyker.STDPConfig(-.004, .0005, False, .2, .8)
+        self.conv1.stdpconfig = [spyker.STDPConfig(0.004, -0.003)]
+        self.conv2.stdpconfig = [spyker.STDPConfig(0.004, -0.003)]
+        reward = spyker.STDPConfig(0.004, -0.003, False, 0.2, 0.8)
+        punish = spyker.STDPConfig(-0.004, 0.0005, False, 0.2, 0.8)
         self.conv3.stdpconfig = [reward, punish]
 
         self.wta1 = lambda x: spyker.convwta(x, 3, 5)
@@ -82,7 +97,7 @@ class Network:
         self.count1 += array.size(0)
         if self.count1 > 500:
             self.count1 -= 500
-            update(self.conv1.stdpconfig[0], 2, .15)
+            update(self.conv1.stdpconfig[0], 2, 0.15)
 
     def train_layer2(self, array):
         array = spyker.pool(spyker.fire(self.conv1(array), self.thresh1), 2)
@@ -92,7 +107,7 @@ class Network:
         self.count2 += array.size(0)
         if self.count2 > 500:
             self.count2 -= 500
-            update(self.conv2.stdpconfig[0], 2, .15)
+            update(self.conv2.stdpconfig[0], 2, 0.15)
 
     def train_layer3(self, array, target):
         array = spyker.pool(spyker.fire(self.conv1(array), self.thresh1), 2)
@@ -130,16 +145,16 @@ class Network:
 
     def load(self, path):
         data = numpy.load(path)
-        spyker.to_tensor(data['conv1_kernel']).to(self.conv1.kernel)
-        spyker.to_tensor(data['conv2_kernel']).to(self.conv2.kernel)
-        spyker.to_tensor(data['conv3_kernel']).to(self.conv3.kernel)
+        spyker.to_tensor(data["conv1_kernel"]).to(self.conv1.kernel)
+        spyker.to_tensor(data["conv2_kernel"]).to(self.conv2.kernel)
+        spyker.to_tensor(data["conv3_kernel"]).to(self.conv3.kernel)
 
 
 if __name__ == "__main__":
     batch_size = 64
-    data_root = './MNIST/'
-    model_path = 'mozafari_mnist_original.npz'
-    device = spyker.device('cuda' if spyker.cuda_available() else 'cpu')
+    data_root = "./MNIST/"
+    model_path = "mozafari_mnist_original.npz"
+    device = spyker.device("cuda" if spyker.cuda_available() else "cpu")
 
     network = Network(device)
     transform = Transform(device)
@@ -147,23 +162,23 @@ if __name__ == "__main__":
 
     if not os.path.isfile(model_path):
         for i in range(2):
-            print(f'Training first layer iteration: {i+1}')
+            print(f"Training first layer iteration: {i+1}")
             for data, target in trainset:
                 network.train_layer1(transform(data))
 
         for i in range(4):
-            print(f'Training second layer iteration: {i+1}')
+            print(f"Training second layer iteration: {i+1}")
             for data, target in trainset:
                 network.train_layer2(transform(data))
 
-        train_max, test_max = .0, .0
+        train_max, test_max = 0.0, 0.0
         rpos = network.conv3.stdpconfig[0].positive
         rneg = network.conv3.stdpconfig[0].negative
         ppos = network.conv3.stdpconfig[1].positive
         pneg = network.conv3.stdpconfig[1].negative
 
         for i in range(680):
-            print(f'Training third layer iteration: {i+1}')
+            print(f"Training third layer iteration: {i+1}")
             perf = numpy.zeros(4)
             perf_batch = numpy.zeros(4)
 
@@ -173,7 +188,7 @@ if __name__ == "__main__":
                 perf_batch += temp
                 perf += temp
 
-                if perf_batch[3] % 1024 == 0: # Note: BATCH must be in the form 2^N
+                if perf_batch[3] % 1024 == 0:  # Note: BATCH must be in the form 2^N
                     network.conv3.stdpconfig[0].positive = rpos * (perf_batch[1] / perf_batch[3])
                     network.conv3.stdpconfig[0].negative = rneg * (perf_batch[1] / perf_batch[3])
                     network.conv3.stdpconfig[1].positive = ppos * (perf_batch[0] / perf_batch[3])
@@ -184,13 +199,12 @@ if __name__ == "__main__":
             perf = test(network, transform, testset)
             test_now = perf[0] / perf[3] * 100
 
-            if (test_now > test_max):
-                print(f'Saving model with accuracy {test_now} to: {model_path}')
+            if test_now > test_max:
+                print(f"Saving model with accuracy {test_now} to: {model_path}")
                 network.save(model_path)
                 test_max = test_now
 
-
-    print(f'Loading model from: {model_path}')
+    print(f"Loading model from: {model_path}")
     network.load(model_path)
     perf = test(network, transform, testset)
-    print(f'Accuracy: {perf[0]/perf[3]*100}')
+    print(f"Accuracy: {perf[0]/perf[3]*100}")

@@ -98,6 +98,7 @@ ENABLE_NINJA            Python         CMake(C++), Env(Py)    Build the library 
 CUDA_ARCH_LIST          C++, Python    Env(Py)                CUDA architectures to be built for
 MKLROOT                 C++, Python    CMake(C++), Env(Py)    MKL root directory hint path
 CUDA_PATH               C++, Python    CMake(C++), Env(Py)    CUDA root directory hint path
+CUDNN_PATH              C++, Python    CMake(C++), Env(Py)    CUDNN root directory hint path
 BLA_VENDOR              C++, Python    CMake(C++), Env(Py)    CBLAS and LAPACKE vendor (`see this <https://cmake.org/cmake/help/latest/module/FindBLAS.html>`_)
 
 ======================= ============== ====================== ===================================================================================================

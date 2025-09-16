@@ -1,10 +1,41 @@
+// BSD 3-Clause License
+//
+// Copyright (c) 2022-2025, Shahriar Rezghi <shahriar.rezghi.sh@gmail.com>
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// 1. Redistributions of source code must retain the above copyright notice, this
+//    list of conditions and the following disclaimer.
+//
+// 2. Redistributions in binary form must reproduce the above copyright notice,
+//    this list of conditions and the following disclaimer in the documentation
+//    and/or other materials provided with the distribution.
+//
+// 3. Neither the name of the copyright holder nor the names of its
+//    contributors may be used to endorse or promote products derived from
+//    this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 #include <pybind11/functional.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 //
-#include <spyker/base.h>
 #include <spyker/config.h>
+//
+#include <spyker/base.h>
 #include <spyker/helper/helper.h>
 #include <spyker/opers.h>
 #include <spyker/shape.h>
@@ -60,7 +91,7 @@ std::string type2str(Type type)
     if (type == Type::I32) return "i32";
     if (type == Type::I64) return "i64";
     if (type == Type::U8) return "u8";
-    if (type == Type::U16) return "u6";
+    if (type == Type::U16) return "u16";
     if (type == Type::U32) return "u32";
     if (type == Type::U64) return "u64";
     if (type == Type::F16) return "f16";
@@ -69,12 +100,36 @@ std::string type2str(Type type)
     SpykerAssert(false, "Binding", "Unknown type given.");
 }
 
+std::tuple<std::string, std::vector<std::string>> readCSV(const std::string &path, const std::string &delim)
+{
+    std::tuple<std::string, std::vector<std::string>> output;
+    std::get<0>(output) = Helper::CSV(path, delim).readline(std::get<1>(output));
+    return output;
+}
+
 PYBIND11_MODULE(spyker_plugin, m)
 {
     auto version = m.def_submodule("version");
-    version.attr("major") = SPYKER_VERSION_MAJOR;
-    version.attr("minor") = SPYKER_VERSION_MINOR;
-    version.attr("patch") = SPYKER_VERSION_PATCH;
+
+    auto version_spyker = version.def_submodule("spyker");
+    version_spyker.attr("major") = SPYKER_VERSION_MAJOR;
+    version_spyker.attr("minor") = SPYKER_VERSION_MINOR;
+    version_spyker.attr("patch") = SPYKER_VERSION_PATCH;
+
+    auto version_cuda = version.def_submodule("cuda");
+    version_cuda.attr("major") = SPYKER_CUDA_MAJOR;
+    version_cuda.attr("minor") = SPYKER_CUDA_MINOR;
+    version_cuda.attr("patch") = SPYKER_CUDA_PATCH;
+
+    auto version_cudnn = version.def_submodule("cudnn");
+    version_cudnn.attr("major") = SPYKER_CUDNN_MAJOR;
+    version_cudnn.attr("minor") = SPYKER_CUDNN_MINOR;
+    version_cudnn.attr("patch") = SPYKER_CUDNN_PATCH;
+
+    auto version_dnnl = version.def_submodule("dnnl");
+    version_dnnl.attr("major") = SPYKER_DNNL_MAJOR;
+    version_dnnl.attr("minor") = SPYKER_DNNL_MINOR;
+    version_dnnl.attr("patch") = SPYKER_DNNL_PATCH;
 
     m.def_submodule("control")
         .def("random_seed", &randomSeed)
@@ -123,15 +178,15 @@ PYBIND11_MODULE(spyker_plugin, m)
         .def("__eq__", [](const Device &device, const Device &other) { return device == other; })
         .def("__eq__", [](const Device &device, std::string kind) { return device == str2kind(kind); });
 
-    m.def("create_tensor", [](Device device, std::string type, Shape shape, bool pinned, bool unified) {
+    m.def("tensor", [](Device device, std::string type, Shape shape, bool pinned, bool unified) {
         return new Tensor(device, str2type(type), shape, pinned, unified);
     });
-    m.def("create_tensor", [](I64 data, Device device, std::string type, Shape shape, bool pinned, bool unified) {
+    m.def("tensor", [](I64 data, Device device, std::string type, Shape shape, bool pinned, bool unified) {
         return new Tensor(std::shared_ptr<void>((void *)data, [](void *) {}), device, str2type(type), shape, pinned,
                           unified);
     });
 
-    py::class_<Tensor>(m, "tensor", py::buffer_protocol())
+    py::class_<Tensor>(m, "Tensor", py::buffer_protocol())
         .def(py::init())
         .def_property_readonly("numel", &Tensor::numel)
         .def_property_readonly("bytes", &Tensor::bytes)
@@ -183,7 +238,7 @@ PYBIND11_MODULE(spyker_plugin, m)
             return py::buffer_info(tensor.data(), size, format, dims, shape, stride);
         });
 
-    py::class_<SparseTensor>(m, "sparse_tensor")
+    py::class_<SparseTensor>(m, "SparseTensor")
         .def(py::init<Tensor, F64>())
         .def_property_readonly("numel", &SparseTensor::numel)
         .def_property_readonly("bytes", &SparseTensor::bytes)
@@ -213,7 +268,10 @@ PYBIND11_MODULE(spyker_plugin, m)
 
     m.def_submodule("helper")  //
         .def("mnist_data", &Helper::mnistData)
-        .def("mnist_label", &Helper::mnistLabel);
+        .def("mnist_label", &Helper::mnistLabel)
+        .def("read_image", [](const std::string& path, std::string mode, Shape size) { return Helper::readImage(path, mode, size); })
+        .def("write_image", [](Tensor input, const std::string &path, std::string format) { return Helper::writeImage(input, path, format); })
+        .def("read_csv", readCSV);
 
     py::class_<DoGFilter>(m, "DoGFilter")
         .def(py::init<F64, F64>())
@@ -257,6 +315,7 @@ PYBIND11_MODULE(spyker_plugin, m)
             return new DoG(_1, _2, _3, _4, str2type(_5));
         }))
         .def_readwrite("kernel", &DoG::kernel)
+        .def_property_readonly("device", &DoG::device)
         .def("_forward", [](DoG &layer, Tensor input, Tensor output) { layer(input, output); });
 
     py::class_<Gabor>(m, "Gabor")
@@ -264,6 +323,7 @@ PYBIND11_MODULE(spyker_plugin, m)
             return new Gabor(_1, _2, _3, _4, str2type(_5));
         }))
         .def_readwrite("kernel", &Gabor::kernel)
+        .def_property_readonly("device", &Gabor::device)
         .def("_forward", [](Gabor &layer, Tensor input, Tensor output) { layer(input, output); });
 
     py::class_<LoG>(m, "LoG")
@@ -271,6 +331,7 @@ PYBIND11_MODULE(spyker_plugin, m)
             return new LoG(_1, _2, _3, _4, str2type(_5));
         }))
         .def_readwrite("kernel", &LoG::kernel)
+        .def_property_readonly("device", &LoG::device)
         .def("_forward", [](LoG &layer, Tensor input, Tensor output) { layer(input, output); });
 
     py::class_<FC>(m, "FC")
@@ -280,6 +341,7 @@ PYBIND11_MODULE(spyker_plugin, m)
         .def_readwrite("kernel", &FC::kernel)
         .def_readwrite("stdpconfig", &FC::stdpconfig)
         .def_readwrite("bpconfig", &FC::bpconfig)
+        .def_property_readonly("device", &FC::device)
         .def("_forward", [](FC &layer, Tensor input, Tensor output, bool sign) { return layer(input, output, sign); })
         .def("_stdp",
              [](FC &layer, Tensor input, const Winners &winners, Tensor output) { layer.stdp(input, winners, output); })
@@ -293,6 +355,7 @@ PYBIND11_MODULE(spyker_plugin, m)
         }))
         .def_readwrite("kernel", &Conv::kernel)
         .def_readwrite("stdpconfig", &Conv::stdpconfig)
+        .def_property_readonly("device", &Conv::device)
         .def("_forward", [](Conv &layer, Tensor input, Tensor output) { layer(input, output); })
         .def("_forward", [](Conv &layer, SparseTensor input, F64 threshold) { return layer(input, threshold); })
         .def("_stdp", [](Conv &layer, Tensor input, const Winners &winners,

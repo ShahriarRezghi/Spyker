@@ -1,8 +1,6 @@
 // BSD 3-Clause License
 //
-// Copyright (c) 2022, Shahriar Rezghi <shahriar25.ss@gmail.com>,
-//                     Mohammad-Reza A. Dehaqani <dehaqani@ut.ac.ir>,
-//                     University of Tehran
+// Copyright (c) 2022-2025, Shahriar Rezghi <shahriar.rezghi.sh@gmail.com>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without

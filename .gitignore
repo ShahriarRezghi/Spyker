@@ -53,9 +53,17 @@ compile_commands.json
 
 # Other
 setup.cfg
-/docs/build/
+/docs/_build/
 dist/
 old/
 build/
 *.egg-info/
 __pycache__/
+
+# PDM / tooling
+.cache/
+.pdm-python
+.python-version
+
+# Editor
+.vscode/

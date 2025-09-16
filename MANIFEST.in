@@ -1,0 +1,39 @@
+# Top-level essentials
+include CMakeLists.txt
+include LICENSE
+include logo.png
+include pyproject.toml
+include README.md
+include setup.cfg
+include setup.py
+
+# Bring in project content
+graft 3rd
+graft cmake
+graft docs
+graft examples
+graft src
+graft tutorials
+
+# Exclude: the 'play' folder
+prune play
+
+# Exclude: specific underscored subfolders inside docs (no wildcards here)
+prune docs/_build
+prune docs/_static
+prune docs/_templates
+
+# Exclude heavy subtrees under 3rd (tests/examples/docs) — list the ones you have
+# (prune does NOT support globs reliably; listing known dirs is safest)
+prune 3rd/blasw/test
+prune 3rd/dnnl/doc
+prune 3rd/pybind11/docs
+prune 3rd/pybind11/tests
+prune 3rd/stb/docs
+prune 3rd/stb/tests
+
+# General cleanup
+prune build
+prune dist
+prune *.egg-info
+global-exclude __pycache__ *.py[cod] *.so *.dylib *.dll .DS_Store *~ *.swp

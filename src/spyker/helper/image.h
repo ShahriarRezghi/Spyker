@@ -1,8 +1,6 @@
 // BSD 3-Clause License
 //
-// Copyright (c) 2022, Shahriar Rezghi <shahriar25.ss@gmail.com>,
-//                     Mohammad-Reza A. Dehaqani <dehaqani@ut.ac.ir>,
-//                     University of Tehran
+// Copyright (c) 2022-2025, Shahriar Rezghi <shahriar.rezghi.sh@gmail.com>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -65,6 +63,6 @@ SpykerExport bool readImage(Tensor output, const std::string& path, std::string 
 /// @param path path of the file that will be written.
 /// @param format format of the image file. values can be 'PNG', 'BMP', 'TGA', 'JPG'.
 /// @return success or failure to write.
-SpykerExport bool writeImage(Tensor input, const std::string& path, std::string format);
+SpykerExport bool writeImage(Tensor input, const std::string& path, std::string format="PNG");
 }  // namespace Helper
 }  // namespace Spyker

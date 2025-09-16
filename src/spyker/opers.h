@@ -1,8 +1,6 @@
 // BSD 3-Clause License
 //
-// Copyright (c) 2022, Shahriar Rezghi <shahriar25.ss@gmail.com>,
-//                     Mohammad-Reza A. Dehaqani <dehaqani@ut.ac.ir>,
-//                     University of Tehran
+// Copyright (c) 2022-2025, Shahriar Rezghi <shahriar.rezghi.sh@gmail.com>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -552,6 +550,7 @@ SpykerExport Tensor conv(Tensor input, Tensor kernel, Tensor output, Expand2 str
 ///
 /// @param[in] input fully connected input dense tensor.
 /// @param[in] kernel fully connected kernel dense tensor.
+/// @param[in] sign convert the kernel to sign before performing the operation.
 /// @return fully connected output dense tensor.
 SpykerExport Tensor fc(Tensor input, Tensor kernel, bool sign = false);
 
@@ -560,6 +559,7 @@ SpykerExport Tensor fc(Tensor input, Tensor kernel, bool sign = false);
 /// @param[in] input fully connected input dense tensor.
 /// @param[in] kernel fully connected kernel dense tensor.
 /// @param[out] output fully connected output dense tensor.
+/// @param[in] sign convert the kernel to sign before performing the operation.
 /// @return the output tensor.
 SpykerExport Tensor fc(Tensor input, Tensor kernel, Tensor output, bool sign = false);
 

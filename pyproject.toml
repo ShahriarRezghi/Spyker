@@ -1,0 +1,82 @@
+[project]
+name = "spyker"
+version = "0.1.0"
+description = "Spiking Deep Neural Networks Library"
+authors = [
+    {name = "Shahriar Rezghi", email = "shahriar.rezghi.sh@gmail.com"},
+]
+dependencies = []
+requires-python = ">=3.9"
+readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = [
+    "Operating System :: POSIX :: Linux,",
+    "Programming Language :: C++,",
+    "Programming Language :: Python :: 3,",
+    "Programming Language :: Python :: 3.9,",
+    "Programming Language :: Python :: 3.10,",
+    "Programming Language :: Python :: 3.11,",
+    "Programming Language :: Python :: 3.12,",
+    "Programming Language :: Python :: 3.13,",
+    "Programming Language :: Python :: 3.14,",
+]
+keywords = ["cxx", "high-performance", "cuda", "neuroscience", "computational-neuroscience", "cudnn", "snn", "stdp", "onednn", "r-stdp"]
+
+[project.urls]
+Homepage = "https://github.com/ShahriarRezghi/Spyker"
+
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# TODO remove?
+[project.optional-dependencies]
+numpy = ["numpy>=1.20"]
+torch = ["torch>=1.12"]
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "flake8>=7.1.1",
+    "isort>=5.13.2",
+    "black>=24.10.0",
+    "black[jupyter]>=24.10.0",
+    "autoflake>=2.3.1",
+    "vulture>=2.13",
+    "flake8-bugbear>=24.10.31",
+    "Flake8-pyproject>=1.2.3",
+    "mypy>=1.17.1",
+    "types-setuptools",
+]
+
+[tool.flake8]
+max-line-length = 120
+extend-select = ["B950"]
+extend-ignore = ["E203", "E501", "E701"]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.black]
+line-length = 120
+target-version = ["py312"]
+
+[tool.mypy]
+python_version = "3.12"
+check_untyped_defs = true
+disallow_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+no_implicit_optional = true
+show_error_codes = true
+pretty = true
+# helpful early on with 3rd-party libs like torch:
+ignore_missing_imports = true
+
+[tool.pdm.scripts]
+flake8 = "flake8 {args:src/python}"
+black  = "black {args:src/python}"
+isort  = "isort {args:src/python}"
+mypy   = "mypy {args:src/python}"
+format.composite = ["black", "isort", "flake8", "mypy"]

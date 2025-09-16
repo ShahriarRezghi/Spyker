@@ -10,10 +10,10 @@ Spyker Documentation
    :maxdepth: 2
    :caption: Contents:
 
-   files/install
-   files/usage
-   files/cxx
-   files/python
+   install
+   usage
+   cxx
+   python
 
 Indices and Tables
 ==================
