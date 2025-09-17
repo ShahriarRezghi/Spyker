@@ -11,7 +11,13 @@ import sys
 import types
 import subprocess
 
-sys.path.insert(0, os.path.abspath(".") + "/../src/python/")
+READTHEDOCS = os.environ.get("READTHEDOCS") == "True"
+
+if READTHEDOCS:
+    import spyker
+    print("Spyker is being imported from:", getattr(spyker, "__file__", spyker))
+
+sys.path.append(os.path.abspath(".") + "/../src/python/")
 
 project = "Spyker"
 copyright = "2021-2025, Shahriar Rezghi"
