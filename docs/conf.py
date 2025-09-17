@@ -11,10 +11,15 @@ import subprocess
 
 READTHEDOCS = os.environ.get("READTHEDOCS") == "True"
 
+conf_path = os.path.dirname(__file__)
 plugin = importlib.import_module("spyker.spyker_plugin")
-sys.path.insert(0, os.path.abspath(".") + "/../src/python/")
-sys.modules["spyker.spyker_plugin"] = plugin
-subprocess.check_call(["doxygen", "Doxyfile"], cwd=os.path.dirname(__file__))
+
+for name in list(sys.modules):
+    if name.startswith("spyker") and not name.startswith("spyker.spyker_plugin"):
+        del sys.modules[name]
+
+sys.path.insert(0, conf_path + "/../src/python/")
+subprocess.check_call(["doxygen", "Doxyfile"], cwd=conf_path)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
