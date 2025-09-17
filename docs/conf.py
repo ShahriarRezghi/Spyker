@@ -3,28 +3,26 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
 import os
 import sys
 import types
+import importlib
 import subprocess
 
 READTHEDOCS = os.environ.get("READTHEDOCS") == "True"
 
-if READTHEDOCS:
-    import spyker
-    print("Spyker is being imported from:", getattr(spyker, "__file__", spyker))
+plugin = importlib.import_module("spyker.spyker_plugin")
+sys.path.insert(0, os.path.abspath(".") + "/../src/python/")
+sys.modules["spyker.spyker_plugin"] = plugin
+subprocess.check_call(["doxygen", "Doxyfile"], cwd=os.path.dirname(__file__))
 
-sys.path.append(os.path.abspath(".") + "/../src/python/")
+# -- Project information -----------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "Spyker"
 copyright = "2021-2025, Shahriar Rezghi"
 author = "Shahriar Rezghi"
 release = "2025"
-
-subprocess.check_call(["doxygen", "Doxyfile"], cwd=os.path.dirname(__file__))
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
