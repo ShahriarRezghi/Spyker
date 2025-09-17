@@ -45,4 +45,4 @@ breathe_default_project = "Spyker"
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
-html_logo = "_static/logo-64.png"
+html_logo = "_static/logo-256.png"

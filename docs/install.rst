@@ -1,127 +1,247 @@
-====================
-Building From Source
-====================
+Spyker Installation & Setup Guide
+=================================
 
-In order to build Spyker from source you will need to install some prequisites, get the source code, compile the library, and install it.
+.. contents::
+   :local:
+   :depth: 2
 
-Prequisites
-===========
+This document describes how to build and install Spyker from source, configure optional
+accelerators, and prepare the Python bindings. The instructions consolidate the build-time
+options exposed by the top-level ``CMakeLists.txt``, the Python ``setup.py`` wrapper, and helper
+projects such as ``3rd/blasw``.
 
-There are some libraries Spyker depends upon that need to be installed on your system. All of these prequisites are optional but recommended to get the best performance out of the library. Most of them can be installed using linux package managers.
+Prerequisites
+-------------
 
-CUDA
-----
+General
+~~~~~~~
 
-In order to enable CUDA support in Spyker, you need to have CUDA on your system. Please refer to CUDA instalation guide `Linux <https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html>`_ and `Windows <https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html>`_ for instructions on how to install it. CUDA version 6.5 or later is supported.
+- **CMake ≥ 3.24** (the top-level project requires it; ``setup.py`` verifies the version).
+- A **C++11** compiler (GCC/Clang/MSVC) with OpenMP support.
+- ``git`` and a POSIX shell (examples assume Linux/macOS; translate commands for PowerShell on
+  Windows).
+- Build tools for native dependencies: ``make`` or ``ninja`` (optional but recommended).
 
-cuDNN
------
+Math Backends
+~~~~~~~~~~~~~
 
-Installing cuDNN is highly recommended as it gives the performance boost needed when running networks on GPUs. Please refer to `cuDNN installation guide <https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html>`_ for instructions on how to install it.
+Spyker can optionally use external BLAS, cuDNN, and oneDNN (DNNL).
 
-CBLAS and LAPACKE
------------------
+- **BLAS**: Required when ``SPYKER_ENABLE_BLAS`` is ``ON`` (default). You may point CMake at an
+  existing BLAS/LAPACK installation or let the bundled ``3rd/blasw`` helper manage discovery. MKL,
+  OpenBLAS, FlexiBLAS, and Apple Accelerate are supported.
+- **oneDNN (DNNL)**: Enabled by default (`SPYKER_ENABLE_DNNL=ON`) for optimized CPU convolution/
+  matmul. The build fetches and builds a static oneDNN unless you override the dependency.
+- **CUDA + cuDNN**: Spyker ships with CUDA kernels and a cuDNN integration. CUDA support defaults
+  to ``ON`` (``SPYKER_ENABLE_CUDA=ON``). cuDNN becomes active automatically when both CUDA and
+  ``SPYKER_ENABLE_CUDNN=ON`` succeed.
 
-Spyker does some linear algebra operations using CBLAS and LAPACKE libraries. Having a good implementation of these libraries can improve performance in the operations that use them. Some good options are  `Intel MKL <https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onemkl.html>`_ library on Intel CPUs and `OpenBLAS <https://www.openblas.net/>`_ (usually needs to be built from source to support LAPACKE).
+Required System Packages
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-Others
-------
+Depending on your platform you may need to install the following packages yourself:
 
-Spyker uses auto-vectorization to improve performance on CPUs. You will need a good and new C++ compiler to build Spyker. Some options are Clang (recommended) and GCC. Use the latest version if you can. You will also need a recent version of CMake so that it will have proper support for CUDA language.
+- GNU build toolchain (``build-essential`` on Debian/Ubuntu, ``xcode-select --install`` on macOS).
+- CUDA Toolkit and driver (from NVIDIA) if building with CUDA.
+- cuDNN (download from NVIDIA or install via package managers) and expose headers/libs through
+  the environment variables documented below.
+- ``zlib`` development headers (cuDNN discovery links against ZLIB).
+- Python 3.9-3.14 and ``pip`` if you plan to build the wheels.
 
-Arch Linux
+Source Tree Layout
+------------------
+
+Key directories referenced in this guide:
+
+- ``src/`` - C++ sources and headers for the core library and CUDA kernels.
+- ``src/python`` - Python package (pure-Python helpers and pybind11 module glue).
+- ``3rd/`` - vendored third-party components (BLASW dispatcher, oneDNN, pybind11, stb, etc.).
+- ``cmake/`` - helper CMake modules (``FindCUDNN.cmake`` and exported package config).
+
+Configuring The C++ Build
+-------------------------
+
+The root ``CMakeLists.txt`` surface the following cache variables and options:
+
++------------------------------+----------------------------------------------------------------+-------------------+
+| Variable / Option            | Purpose                                                        | Default           |
++==============================+================================================================+===================+
+| ``SPYKER_OPTIM_FLAGS``       | Extra compiler flags (space-separated).                        | ``-march=native`` |
++------------------------------+----------------------------------------------------------------+-------------------+
+| ``SPYKER_CUDA_ARCH``         | CUDA SM list (space-separated). Overrides auto-detection.      | auto              |
++------------------------------+----------------------------------------------------------------+-------------------+
+| ``SPYKER_ENABLE_PYTHON``     | Build pybind11 module. Forces static ``libspyker``.            | ``OFF``           |
++------------------------------+----------------------------------------------------------------+-------------------+
+| ``SPYKER_ENABLE_CUDA``       | Compile CUDA backend.                                          | ``ON``            |
++------------------------------+----------------------------------------------------------------+-------------------+
+| ``SPYKER_ENABLE_CUDNN``      | Link against cuDNN (requires CUDA).                            | ``ON``            |
++------------------------------+----------------------------------------------------------------+-------------------+
+| ``SPYKER_ENABLE_DNNL``       | Build and link oneDNN.                                         | ``ON``            |
++------------------------------+----------------------------------------------------------------+-------------------+
+| ``SPYKER_ENABLE_BLAS``       | Enable BLAS (via BLASW helper).                                | ``ON``            |
++------------------------------+----------------------------------------------------------------+-------------------+
+| ``SPYKER_ENABLE_EXAMPLES``   | Build ``play`` demo executable.                                | ``ON``            |
++------------------------------+----------------------------------------------------------------+-------------------+
+| ``SPYKER_ENABLE_TESTS``      | Build tests (none shipped by default).                         | ``OFF``           |
++------------------------------+----------------------------------------------------------------+-------------------+
+| ``BLASW_BACKEND_ROOT``       | Root for BLAS/MKL backend; seeds ``BLAS_ROOT``/``MKL_ROOT``.   | *(empty)*         |
++------------------------------+----------------------------------------------------------------+-------------------+
+| ``BLASW_BACKEND_STATIC``     | Prefer static (``ON``) or dynamic (``OFF``) backend linking.   | *(empty)*         |
++------------------------------+----------------------------------------------------------------+-------------------+
+| ``BLASW_BACKEND_PROVIDER``   | Select BLAS vendor or MKL triple.                              | *(empty)*         |
++------------------------------+----------------------------------------------------------------+-------------------+
+| ``BLASW_FORCE_MKL``          | Force Intel MKL backend regardless of detection.               | ``OFF``           |
++------------------------------+----------------------------------------------------------------+-------------------+
+
+You can set these via ``-DNAME=value`` on the CMake command line or by exporting environment
+variables that ``setup.py`` forwards (see *Python Build Environment Variables*).
+
+Example: CPU-only Release build
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+   cmake -S . -B build \
+     -DSPYKER_ENABLE_CUDA=OFF \
+     -DSPYKER_ENABLE_CUDNN=OFF \
+     -DSPYKER_ENABLE_DNNL=ON \
+     -DSPYKER_OPTIM_FLAGS="-O3 -march=native"
+   cmake --build build -j$(nproc)
+   cmake --install build --prefix /opt/spyker
+
+Example: CUDA build with explicit SM targets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+   cmake -S . -B build \
+     -DSPYKER_ENABLE_CUDA=ON \
+     -DSPYKER_CUDA_ARCH="80 86" \
+     -DSPYKER_ENABLE_CUDNN=ON
+   cmake --build build --target spyker -j$(nproc)
+
+Environment Variables for cuDNN Discovery
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``FindCUDNN.cmake`` honours the following variables when locating headers and libraries:
+
+- ``CUDNN_INCLUDE_PATH`` or ``CUDNN_PATH``: root directory containing ``include/cudnn*.h``.
+- ``CUDNN_LIBRARY_PATH`` or ``CUDNN_PATH``: directories containing ``libcudnn_*`` libraries.
+- ``Python_SITEARCH``: searched to support ``pip install nvidia-cudnn-cu11`` style layouts.
+
+Ensure ``ZLIB`` development files are discoverable; ``FindCUDNN.cmake`` links ``ZLIB::ZLIB`` into
+``CUDNN::cudnn_needed``.
+
+BLAS Backend Configuration (3rd/blasw)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The BLASW helper accepts granular configuration through the ``BLASW_BACKEND_*`` cache entries
+summarised in the table above. These complement the standard BLAS/MKL variables (``BLA_VENDOR``,
+``BLA_STATIC``, ``MKL_ROOT``, ``MKL_INTERFACE``, ``MKL_THREADING``, etc.), which remain available
+for advanced setups.
+
+Building the Python Package
+---------------------------
+
+Spyker's Python wheel is built via ``setuptools`` but delegates all compilation to CMake. Typical
+invocations:
+
+Install in the current environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+   python -m pip install .
+
+Editable install for development
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+   python -m pip install --editable .
+
+Both commands run CMake in a temporary build directory and honour the environment variables
+summarised below.
+
+Python Build Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``setup.py`` forwards a curated set of variables to CMake:
+
++----------------------------+------------------------------------------------------------------------------+
+| Environment Variable       | Effect                                                                       |
++============================+==============================================================================+
+| ``SPYKER_ENABLE_NINJA``    | Generate Ninja build files when set to ``ON``/``TRUE``/``1``.                |
++----------------------------+------------------------------------------------------------------------------+
+| ``SPYKER_CCACHE_EXEC``     | Path to a compiler launcher (e.g. ``ccache``) forwarded as ``-DCMAKE_CXX_COMPILER_LAUNCHER``. |
++----------------------------+------------------------------------------------------------------------------+
+| ``SPYKER_CMAKE_ARGS``      | Additional space-separated CMake flags appended verbatim.                    |
++----------------------------+------------------------------------------------------------------------------+
+| ``SPYKER_OPTIM_FLAGS``     | Overrides the ``SPYKER_OPTIM_FLAGS`` cache entry.                            |
++----------------------------+------------------------------------------------------------------------------+
+| ``SPYKER_CUDA_ARCH``       | Overrides automatic CUDA SM detection.                                       |
++----------------------------+------------------------------------------------------------------------------+
+| ``SPYKER_BUILD_TYPE``      | Sets ``CMAKE_BUILD_TYPE`` (defaults to ``Release``).                         |
++----------------------------+------------------------------------------------------------------------------+
+| ``SPYKER_ENABLE_BLAS``     | Enable or disable the BLAS backend.                                          |
++----------------------------+------------------------------------------------------------------------------+
+| ``SPYKER_ENABLE_DNNL``     | Enable or disable oneDNN integration.                                        |
++----------------------------+------------------------------------------------------------------------------+
+| ``SPYKER_ENABLE_CUDA``     | Toggle CUDA compilation.                                                     |
++----------------------------+------------------------------------------------------------------------------+
+| ``SPYKER_ENABLE_CUDNN``    | Toggle cuDNN linkage.                                                        |
++----------------------------+------------------------------------------------------------------------------+
+| ``BLASW_FORCE_MKL``        | Forwarded as ``-DBLASW_FORCE_MKL`` to force Intel MKL.                       |
++----------------------------+------------------------------------------------------------------------------+
+| ``BLASW_BLAS_ROOT``        | Forwarded as ``-DBLASW_BACKEND_ROOT`` to seed BLAS/MKL paths.                |
++----------------------------+------------------------------------------------------------------------------+
+| ``BLASW_BLAS_STATIC``      | Forwarded as ``-DBLASW_BACKEND_STATIC`` to request static or dynamic linking. |
++----------------------------+------------------------------------------------------------------------------+
+| ``BLASW_BLAS_PROVIDER``    | Forwarded as ``-DBLASW_BACKEND_PROVIDER`` to select the BLAS vendor or MKL triple. |
++----------------------------+------------------------------------------------------------------------------+
+
+The build process uses all available CPU cores by default (``-j`` flag). On Windows the script also
+selects the x64 generator automatically when running on a 64-bit interpreter.
+
+Output Artifacts
+~~~~~~~~~~~~~~~~
+
+- ``spyker/spyker_plugin`` - compiled pybind11 module (installed into the Python package).
+- ``libspyker`` - shared or static C++ library (static when ``SPYKER_ENABLE_PYTHON=ON``).
+- Optional ``play`` example executable if ``SPYKER_ENABLE_EXAMPLES=ON``.
+
+Troubleshooting & Tips
+----------------------
+
+- Inspect the CMake *Summary* banner at the end of configuration to confirm which backends are
+  active (CUDA/CUDNN/DNNL/BLAS and optimization flags).
+- When linking against custom cuDNN builds, double-check that both headers and libraries are
+  reachable via the documented environment variables.
+- If you see missing BLAS symbols, reconfigure with ``-DBLASW_BACKEND_PROVIDER=OpenBLAS`` (or similar)
+  and point ``BLASW_BACKEND_ROOT`` at the installation root.
+- Set ``SPYKER_ENABLE_EXAMPLES=OFF`` on headless build servers to avoid linking the sample binary.
+- Clear the ``build`` directory between major configuration changes to avoid stale cache entries.
+
+Verification
+------------
+
+After installation, verify the library and Python bindings:
+
+.. code-block:: bash
+
+   python - <<'PY'
+   import spyker
+   print("Spyker version:", spyker.version())
+   print("Devices:", spyker.all_devices())
+   PY
+
+If CUDA is enabled you can further validate with ``spyker.cuda_available()`` and inspect memory
+statistics via ``spyker.cuda_memory_total()``.
+
+Next Steps
 ----------
 
-Installing the prequisites is very easy in Arch linux using its package manager. For example:
-
-.. code-block:: bash
-
-    pacman -S base-devel clang cmake intel-mkl intel-mkl-static cuda cudnn
-
-You might need sudo to run this command.
-
-Build and Install
-=================
-
-First, you need to download the source code:
-
-.. code-block:: bash
-
-    git clone --recursive git@github.com:Mathific/Spyker.git
-    cd spyker
-
-Then, depending on which interface you want to build, you can begin the building process.
-
-C++ Interface
--------------
-The C++ interface can be built like so:
-
-.. code-block:: bash
-
-    mkdir build
-    cd build
-    cmake -DCMAKE_BUILD_TYPE=Release ..
-    make -j 8
-    make install
-
-You might need sudo to run ``make install``.
-
-Python Interface
-----------------
-
-You can build the Python interface with:
-
-.. code-block:: bash
-
-    pip wheel -vvv . -w dist/
-
-
-You will need to install the ``wheel`` package for Python. The built package is located in dist dictory and can be installed with ``pip install <package-file-name>``.
-
-Build Options
--------------
-
-There are some build options to give you control over the installation:
-
-======================= ============== ====================== ===================================================================================================
-Option                  Interface      Type                   Description
-======================= ============== ====================== ===================================================================================================
-ENABLE_TESTS            C++                                   Build the library tests
-ENABLE_EXAMPLES         C++            CMake                  Build the library examples
-CMAKE_INSTALL_PREFIX    C++            CMake                  Set the installation directory
-ENABLE_DNNL             C++, Python    CMake                  Build the library with DNNL support (highly recommended)
-ENABLE_BLAS             C++, Python    CMake(C++), Env(Py)    Build the library using CLBAS and LAPACKE support
-ENABLE_CUDA             C++, Python    CMake(C++), Env(Py)    build the library using CUDA support
-ENABLE_CUDNN            C++, Python    CMake(C++), Env(Py)    build the library using cuDNN support (highly recommended)
-ENABLE_NATIVE           C++, Python    CMake(C++), Env(Py)    Build the library using native CPU instructions (must be off when building portable library)
-ENABLE_NINJA            Python         CMake(C++), Env(Py)    Build the library with Ninja (pass ``-G Ninja`` for C++)
-CUDA_ARCH_LIST          C++, Python    Env(Py)                CUDA architectures to be built for
-MKLROOT                 C++, Python    CMake(C++), Env(Py)    MKL root directory hint path
-CUDA_PATH               C++, Python    CMake(C++), Env(Py)    CUDA root directory hint path
-CUDNN_PATH              C++, Python    CMake(C++), Env(Py)    CUDNN root directory hint path
-BLA_VENDOR              C++, Python    CMake(C++), Env(Py)    CBLAS and LAPACKE vendor (`see this <https://cmake.org/cmake/help/latest/module/FindBLAS.html>`_)
-
-======================= ============== ====================== ===================================================================================================
-
-An example of setting a CMake variable:
-
-.. code-block:: bash
-
-    cmake -DVARIABLE:VALUE ...
-
-
-An example of setting an environment variable:
-
-.. code-block:: bash
-
-    VARIABLE=VALUE pip ...
-
-
-or by using ``export`` in shells.
-
-Finding Dependencies
---------------------
-
-finding dependencies can be tricky when it comes to a multi-platform library. Some tips are shown here that will help you find missing dependencies. So please consider these tips before opening an issue. The standard way of setting the hint paths for dependencies is listed in the ``Building Options`` section.
-
-CMake package finding works by searching a list of paths for headers and library files. By default, this search is done quietly. You can enable verbose mode by setting ``CMAKE_FIND_DEBUG_MODE`` CMake option to ``ON``. You can check if the path that contains the needed files exists and if not, add it. You can add to search list by adding the path to CMake list variable ``CMAKE_PREFIX_PATH``.
+- Explore the high-level usage examples in ``USAGE.rst``.
+- Build the Sphinx documentation (``sphinx-build docs build/html``) for API details.
+- Review ``docs/install.rst`` for platform-specific notes or package manager instructions once
+  available.

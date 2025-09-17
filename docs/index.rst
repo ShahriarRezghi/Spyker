@@ -12,8 +12,7 @@ Spyker Documentation
 
    install
    usage
-   cxx
-   python
+   api
 
 Indices and Tables
 ==================
