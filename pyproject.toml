@@ -10,15 +10,16 @@ requires-python = ">=3.9"
 readme = "README.md"
 license = { file = "LICENSE" }
 classifiers = [
-    "Operating System :: POSIX :: Linux,",
-    "Programming Language :: C++,",
-    "Programming Language :: Python :: 3,",
-    "Programming Language :: Python :: 3.9,",
-    "Programming Language :: Python :: 3.10,",
-    "Programming Language :: Python :: 3.11,",
-    "Programming Language :: Python :: 3.12,",
-    "Programming Language :: Python :: 3.13,",
-    "Programming Language :: Python :: 3.14,",
+    "Environment :: GPU",
+    "Environment :: GPU :: NVIDIA CUDA",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 keywords = ["cxx", "high-performance", "cuda", "neuroscience", "computational-neuroscience", "cudnn", "snn", "stdp", "onednn", "r-stdp"]
 
