@@ -1,3 +1,5 @@
+![logo](./docs/_static/logo-1024.png)
+
 # Spyker
 
 Spyker is a fast software library for spiking neural networks (SNNs). It uses a hand-optimized C++/CUDA core alongside optimized computational backends from Intel and NVIDIA with easy-to-use Python bindings. This means you can test new learning rules in a notebook, run large models quickly on a workstation, or use it in production without rewriting code. Spyker is made for researchers and engineers who need biologically realistic SNN parts (filters, learning rules, sparse encodings) but still want the speed and flexibility of modern deep-learning tools.
