@@ -26,25 +26,13 @@ The research behind Spyker shows what makes it different from other SNN tools:
 
 ## Installation (Quick Guide)
 
-You need CMake ≥ 3.24 and a C++11 capable compiler. Optional backends include CUDA, cuDNN, oneDNN, and BLAS/MKL.
+To get the C++ library, build the library on your system. The instructions are in the documentation below. To get the Python package, if you're not running the library on an NVIDIA GPU, install the CPU only package from PyPI:
 
-Example installs:
-
-```bash
-# CPU-only C++ build
-git clone --recursive https://github.com/ShahriarRezghi/Spyker.git
-cmake -S Spyker -B build -DCMAKE_BUILD_TYPE=Release \
-  -DSPYKER_ENABLE_CUDA=OFF -DSPYKER_ENABLE_CUDNN=OFF
-cmake --build build -j$(nproc)
-
-# Python wheel
-python -m pip install .
-
-# Editable Python install
-python -m pip install --editable .
+```
+pip install spyker
 ```
 
-See the documentation for advanced options like forcing MKL or selecting CUDA architectures.
+If you want to run the library on an NVIDA GPU, install the full package from the packages that exist in the [GitHub releases](https://github.com/ShahriarRezghi/Spyker/releases) page. If you can't find a package that works for you, build the library from source using the instructions in the documentation below.
 
 # Documentation
 You can see the documentation for installation, usage tutorial, and the C++ and Python interfaces [here](https://spyker.readthedocs.io/en/latest/index.html).

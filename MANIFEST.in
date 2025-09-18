@@ -10,20 +10,15 @@ include setup.py
 # Bring in project content
 graft 3rd
 graft cmake
-graft docs
-graft examples
 graft src
-graft tutorials
 
-# Exclude: the 'play' folder
+# Exclude: the unneeded folders folder
 prune play
+prune docs
+prune examples
+prune tutorials
 
-# Exclude: specific underscored subfolders inside docs (no wildcards here)
-prune docs/_build
-prune docs/_static
-prune docs/_templates
-
-# Exclude heavy subtrees under 3rd (tests/examples/docs) — list the ones you have
+# Exclude heavy subtrees under 3rd (tests/examples/docs)
 # (prune does NOT support globs reliably; listing known dirs is safest)
 prune 3rd/blasw/test
 prune 3rd/dnnl/doc
