@@ -61,52 +61,6 @@ You can take a look at the tutorials listed below to learn how to use the librar
 # Examples
 You can checkout example implementations of some networks in the [examples directory](./examples/). The example use the MNIST dataset, which is expected to be inside the `MNIST` directory beside the files, and the name of the files is expected to be `train-images-idx3-ubyte`, `train-labels-idx1-ubyte`, `t10k-images-idx3-ubyte`, `t10k-labels-idx1-ubyte`.
 
-## Quick Example
-
-### Python
-
-```python
-import numpy as np
-import spyker
-
-device = spyker.device("cuda") if spyker.cuda_available() else spyker.device("cpu")
-
-conv = spyker.Conv(1, 8, (5, 5), stride=2, pad=2, device=device)
-conv.stdpconfig = [spyker.STDPConfig(0.01, 0.0075)]
-
-fc = spyker.FC(8 * 14 * 14, 10, device=device)
-fc.stdpconfig = [spyker.STDPConfig(0.02, 0.015)]
-
-image = np.random.rand(1, 1, 28, 28).astype(np.float32)
-coded = spyker.code(image, time=10, dtype="u8")
-spikes = spyker.fire(coded, threshold=5.0)
-
-potentials = conv(spikes)
-winners = spyker.convwta(potentials, radius=2, count=4)
-conv.stdp(spikes, winners, potentials)
-```
-
-### C++
-
-```cpp
-#include <spyker/spyker.h>
-using namespace Spyker;
-
-int main()
-{
-    Device device(Kind::CUDA, 0);
-    Conv conv(device, 1, 16, Expand2(5, 5), Expand2(2, 2), Expand4(2));
-    conv.stdpconfig.push_back(STDPConfig(0.01, 0.008));
-
-    Tensor input(Type::F32, {1, 1, 28, 28});
-    input.fill(Scalar(0.0f));
-
-    Tensor output = conv(input);
-    Winners winners = convwta(output, Expand2(2), 4);
-    conv.stdp(input, winners, output);
-}
-```
-
 ## Project Structure
 
 ```
