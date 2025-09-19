@@ -32,7 +32,13 @@ To get the C++ library, build the library on your system. The instructions are i
 pip install spyker
 ```
 
-If you want to run the library on an NVIDA GPU, install the full package from the packages that exist in the [GitHub releases](https://github.com/ShahriarRezghi/Spyker/releases) page. If you can't find a package that works for you, build the library from source using the instructions in the documentation below.
+If you want to run the library on an NVIDA GPU, install the full package from the packages that exist in the [GitHub releases](https://github.com/ShahriarRezghi/Spyker/releases) page. For example:
+
+```
+pip install https://github.com/ShahriarRezghi/Spyker/releases/download/v0.1.0/spyker-cuda13-0.1.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+```
+
+Checkout the releases page for more versions of Python and CUDA. If you can't find a package that works for you, build the library from source using the instructions in the documentation below.
 
 # Documentation
 You can see the documentation for installation, usage tutorial, and the C++ and Python interfaces [here](https://spyker.readthedocs.io/en/latest/index.html).
