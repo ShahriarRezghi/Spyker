@@ -3,7 +3,7 @@
 	url = https://github.com/pybind/pybind11.git
 [submodule "3rd/blasw"]
 	path = 3rd/blasw
-	url = git@github.com:Mathific/Blasw.git
+	url = https://github.com/Mathific/Blasw.git
 [submodule "3rd/dnnl"]
 	path = 3rd/dnnl
 	url = https://github.com/oneapi-src/oneDNN.git
